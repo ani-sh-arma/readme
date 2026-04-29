@@ -110,8 +110,11 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     Future<void> Function() action,
   ) {
     final queue = _watcherQueues[path] ?? Future.value();
-    _watcherQueues[path] = queue.then((_) => action()).catchError((error, _) {
-      debugPrint('Directory watch error for $path: $error');
+    _watcherQueues[path] =
+        queue.then((_) => action()).catchError((error, stackTrace) {
+      debugPrint(
+        'Directory watch error for $path: $error\n$stackTrace',
+      );
     });
   }
 }
