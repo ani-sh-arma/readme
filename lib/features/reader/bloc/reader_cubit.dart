@@ -94,6 +94,7 @@ class ReaderCubit extends Cubit<ReaderState> {
     final pos = pendingPosition.isNotEmpty
         ? pendingPosition
         : book.currentPosition;
+    if (pos.isEmpty) return;
     await _bookmarkRepo.addBookmark(book.id, pos, label: label);
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/database/tables/shelves_table.dart';
@@ -109,6 +110,8 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     Future<void> Function() action,
   ) {
     final queue = _watcherQueues[path] ?? Future.value();
-    _watcherQueues[path] = queue.then((_) => action()).catchError((_) {});
+    _watcherQueues[path] = queue.then((_) => action()).catchError((error, _) {
+      debugPrint('Directory watch error for $path: $error');
+    });
   }
 }
