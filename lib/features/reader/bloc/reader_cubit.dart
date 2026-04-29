@@ -90,8 +90,9 @@ class ReaderCubit extends Cubit<ReaderState> {
   Future<void> addBookmark({String label = ''}) async {
     final book = state.book;
     if (book == null) return;
-    final pos = _pendingPosition.isNotEmpty
-        ? _pendingPosition
+    final pendingPosition = _pendingPosition;
+    final pos = pendingPosition.isNotEmpty
+        ? pendingPosition
         : book.currentPosition;
     await _bookmarkRepo.addBookmark(book.id, pos, label: label);
   }

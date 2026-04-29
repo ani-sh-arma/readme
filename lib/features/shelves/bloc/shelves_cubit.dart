@@ -16,6 +16,7 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   StreamSubscription<dynamic>? _sub;
   final Map<String, StreamSubscription<FileSystemEvent>> _directoryWatchers =
       {};
+  final Map<String, Future<void>> _watcherQueues = {};
 
   Future<void> start() async {
     emit(state.copyWith(isLoading: true));
@@ -58,6 +59,7 @@ class ShelvesCubit extends Cubit<ShelvesState> {
       sub.cancel();
     }
     _directoryWatchers.clear();
+    _watcherQueues.clear();
     return super.close();
   }
 
@@ -69,6 +71,7 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     for (final path in stalePaths) {
       _directoryWatchers[path]?.cancel();
       _directoryWatchers.remove(path);
+      _watcherQueues.remove(path);
     }
 
     for (final shelf in shelves) {
@@ -84,18 +87,28 @@ class ShelvesCubit extends Cubit<ShelvesState> {
 
     final sub = dir.watch(recursive: shelf.scanRecursive).listen((event) async {
       if (event.isDirectory) return;
-      if (event.type == FileSystemEvent.delete) {
-        await _bookRepo.removeBookByPath(event.path);
-        return;
-      }
+      _enqueueWatcherWork(shelf.dirPath, () async {
+        if (event.type == FileSystemEvent.delete) {
+          await _bookRepo.removeBookByPath(event.path);
+          return;
+        }
 
-      if (event.type == FileSystemEvent.create ||
-          event.type == FileSystemEvent.modify ||
-          event.type == FileSystemEvent.move) {
-        await _bookRepo.upsertFromFile(File(event.path));
-      }
+        if (event.type == FileSystemEvent.create ||
+            event.type == FileSystemEvent.modify ||
+            event.type == FileSystemEvent.move) {
+          await _bookRepo.upsertFromFile(File(event.path));
+        }
+      });
     });
 
     _directoryWatchers[shelf.dirPath] = sub;
+  }
+
+  void _enqueueWatcherWork(
+    String path,
+    Future<void> Function() action,
+  ) {
+    final queue = _watcherQueues[path] ?? Future.value();
+    _watcherQueues[path] = queue.then((_) => action()).catchError((_) {});
   }
 }
