@@ -17,6 +17,11 @@ class LibraryScanRequested extends LibraryEvent {
   final Directory directory;
 }
 
+class LibraryScanProgressUpdated extends LibraryEvent {
+  LibraryScanProgressUpdated(this.path);
+  final String path;
+}
+
 class LibrarySortChanged extends LibraryEvent {
   LibrarySortChanged(this.field, {this.ascending = true});
   final LibrarySortField field;

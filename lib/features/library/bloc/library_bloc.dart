@@ -9,6 +9,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<LibraryStarted>(_onStarted);
     on<LibraryBooksUpdated>(_onBooksUpdated);
     on<LibraryScanRequested>(_onScanRequested);
+    on<LibraryScanProgressUpdated>(_onScanProgressUpdated);
     on<LibrarySortChanged>(_onSortChanged);
     on<LibraryViewModeToggled>(_onViewModeToggled);
     on<LibraryFormatFilterChanged>(_onFormatFilterChanged);
@@ -41,17 +42,34 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     LibraryScanRequested event,
     Emitter<LibraryState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
+    emit(
+      state.copyWith(
+        isLoading: true,
+        scanProgress: event.directory.path,
+      ),
+    );
     try {
       await _bookRepo.scanDirectory(
         event.directory,
-        onProgress: (path) => add(
-          LibraryBooksUpdated(state.books), // triggers refresh via stream
+        onProgress: (path) => add(LibraryScanProgressUpdated(path)),
+      );
+      emit(state.copyWith(isLoading: false, clearScanProgress: true));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          error: e.toString(),
+          isLoading: false,
+          clearScanProgress: true,
         ),
       );
-    } catch (e) {
-      emit(state.copyWith(error: e.toString(), isLoading: false));
     }
+  }
+
+  void _onScanProgressUpdated(
+    LibraryScanProgressUpdated event,
+    Emitter<LibraryState> emit,
+  ) {
+    emit(state.copyWith(scanProgress: event.path));
   }
 
   void _onSortChanged(LibrarySortChanged event, Emitter<LibraryState> emit) {

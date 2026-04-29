@@ -67,11 +67,22 @@ class ReaderCubit extends Cubit<ReaderState> {
 
   void updatePosition(String position) {
     _pendingPosition = position;
+    final book = state.book;
+    if (book != null && book.currentPosition != position) {
+      emit(
+        state.copyWith(
+          book: book.copyWith(
+            currentPosition: position,
+            lastOpenedAt: Value(DateTime.now()),
+          ),
+        ),
+      );
+    }
     _positionDebounce?.cancel();
     _positionDebounce = Timer(const Duration(seconds: 2), () {
-      final book = state.book;
-      if (book != null) {
-        _bookRepo.updatePosition(book.id, _pendingPosition);
+      final activeBook = state.book;
+      if (activeBook != null) {
+        _bookRepo.updatePosition(activeBook.id, _pendingPosition);
       }
     });
   }
@@ -79,7 +90,9 @@ class ReaderCubit extends Cubit<ReaderState> {
   Future<void> addBookmark({String label = ''}) async {
     final book = state.book;
     if (book == null) return;
-    final pos = book.currentPosition;
+    final pos = _pendingPosition.isNotEmpty
+        ? _pendingPosition
+        : book.currentPosition;
     await _bookmarkRepo.addBookmark(book.id, pos, label: label);
   }
 

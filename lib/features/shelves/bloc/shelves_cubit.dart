@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/database/tables/shelves_table.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/shelf_repository.dart';
 import 'shelves_bloc.dart';
@@ -13,12 +14,17 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   final ShelfRepository _shelfRepo;
   final BookRepository _bookRepo;
   StreamSubscription<dynamic>? _sub;
+  final Map<String, StreamSubscription<FileSystemEvent>> _directoryWatchers =
+      {};
 
   Future<void> start() async {
     emit(state.copyWith(isLoading: true));
     await _sub?.cancel();
     _sub = _shelfRepo.watchAllShelves().listen(
-      (shelves) => emit(state.copyWith(shelves: shelves, isLoading: false)),
+      (shelves) {
+        _syncDirectoryWatchers(shelves);
+        emit(state.copyWith(shelves: shelves, isLoading: false));
+      },
     );
   }
 
@@ -48,6 +54,48 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   @override
   Future<void> close() {
     _sub?.cancel();
+    for (final sub in _directoryWatchers.values) {
+      sub.cancel();
+    }
+    _directoryWatchers.clear();
     return super.close();
+  }
+
+  void _syncDirectoryWatchers(List<Shelf> shelves) {
+    final currentPaths = shelves.map((shelf) => shelf.dirPath).toSet();
+
+    final stalePaths =
+        _directoryWatchers.keys.where((p) => !currentPaths.contains(p)).toList();
+    for (final path in stalePaths) {
+      _directoryWatchers[path]?.cancel();
+      _directoryWatchers.remove(path);
+    }
+
+    for (final shelf in shelves) {
+      final path = shelf.dirPath;
+      if (_directoryWatchers.containsKey(path)) continue;
+      _watchShelf(shelf);
+    }
+  }
+
+  void _watchShelf(Shelf shelf) {
+    final dir = Directory(shelf.dirPath);
+    if (!dir.existsSync()) return;
+
+    final sub = dir.watch(recursive: shelf.scanRecursive).listen((event) async {
+      if (event.isDirectory) return;
+      if (event.type == FileSystemEvent.delete) {
+        await _bookRepo.removeBookByPath(event.path);
+        return;
+      }
+
+      if (event.type == FileSystemEvent.create ||
+          event.type == FileSystemEvent.modify ||
+          event.type == FileSystemEvent.move) {
+        await _bookRepo.upsertFromFile(File(event.path));
+      }
+    });
+
+    _directoryWatchers[shelf.dirPath] = sub;
   }
 }

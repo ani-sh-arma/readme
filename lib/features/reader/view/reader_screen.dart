@@ -71,9 +71,10 @@ class _ReaderViewState extends State<_ReaderView> {
                   // Reader content
                   _buildReader(state),
                   // Top chrome
-                  if (state.showUi) _TopBar(book: widget.book),
+                  if (state.showUi && state.book != null)
+                    _TopBar(book: state.book!),
                   // Bottom chrome
-                  if (state.showUi) _BottomBar(book: widget.book),
+                  if (state.showUi) const _BottomBar(),
                 ],
               ),
             ),
@@ -225,14 +226,14 @@ class _TopBar extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.book});
-  final Book book;
+  const _BottomBar();
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ReaderCubit, ReaderState>(
       builder: (context, state) {
         final bookmarks = state.bookmarks;
+        final book = state.book;
         return Positioned(
           bottom: 0,
           left: 0,
@@ -256,11 +257,11 @@ class _BottomBar extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      book.currentPosition.isNotEmpty
-                          ? 'Position: ${book.currentPosition}'
-                          : '',
+                    children: [
+                      Text(
+                        book != null && book.currentPosition.isNotEmpty
+                            ? 'Position: ${book.currentPosition}'
+                            : '',
                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     if (bookmarks.isNotEmpty)

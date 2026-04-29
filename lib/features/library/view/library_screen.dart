@@ -122,10 +122,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildBody(BuildContext context, LibraryState state) {
-    if (state.isLoading && state.books.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (state.scanProgress != null) {
       return Column(
         children: [
@@ -140,6 +136,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ],
       );
+    }
+
+    if (state.isLoading && state.books.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
     }
 
     final books = state.filteredBooks;

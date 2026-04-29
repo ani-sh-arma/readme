@@ -56,6 +56,42 @@ class BookRepository {
   Future<void> updateCover(int id, String coverPath) =>
       _db.booksDao.updateCover(id, coverPath);
 
+  Future<void> removeBookByPath(String path) async {
+    final existing = await getBookByPath(path);
+    if (existing != null) {
+      await deleteBook(existing.id);
+    }
+  }
+
+  Future<void> upsertFromFile(File file) async {
+    final format = formatFromPath(file.path);
+    if (format == BookFormat.unknown || format == BookFormat.djvu) return;
+
+    if (!await file.exists()) return;
+
+    final existing = await getBookByPath(file.path);
+    final stat = await file.stat();
+
+    if (existing != null) {
+      if (existing.fileSize != stat.size) {
+        await updateBook(
+          existing.copyWith(fileSize: stat.size).toCompanion(false),
+        );
+      }
+      return;
+    }
+
+    await upsertBook(
+      BooksCompanion(
+        title: Value(titleFromPath(file.path)),
+        filePath: Value(file.path),
+        format: Value(format.name),
+        dateAdded: Value(DateTime.now()),
+        fileSize: Value(stat.size),
+      ),
+    );
+  }
+
   // --- scanning helpers ---
 
   /// Derives a [BookFormat] from a file path by looking at its MIME type and
