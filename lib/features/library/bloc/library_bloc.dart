@@ -51,7 +51,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _bookRepo.scanDirectory(
         event.directory,
-        onProgress: (path) => add(LibraryScanProgressUpdated(path)),
+        onProgress: (path) =>
+            add(LibraryScanProgressUpdated(path)), // update UI progress
       );
       emit(state.copyWith(isLoading: false, clearScanProgress: true));
     } catch (e) {

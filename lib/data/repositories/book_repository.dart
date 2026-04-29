@@ -65,7 +65,7 @@ class BookRepository {
 
   Future<void> upsertFromFile(File file) async {
     final format = formatFromPath(file.path);
-    // DjVu support is intentionally deferred for v1; skip until reader exists.
+    // DjVu support is intentionally deferred; skip until a reader exists.
     if (format == BookFormat.unknown || format == BookFormat.djvu) return;
 
     if (!await file.exists()) return;

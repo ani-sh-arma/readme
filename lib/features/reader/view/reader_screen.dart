@@ -258,9 +258,9 @@ class _BottomBar extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        book != null && book.currentPosition.isNotEmpty
-                            ? 'Position: ${book.currentPosition}'
+                    Text(
+                        (book?.currentPosition.isNotEmpty ?? false)
+                            ? 'Position: ${book!.currentPosition}'
                             : '',
                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
