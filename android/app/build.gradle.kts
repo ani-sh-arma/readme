@@ -42,3 +42,10 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // junrar — CBR/RAR extraction
+    implementation("com.github.junrar:junrar:7.5.5")
+    // mobiparser — MOBI/AZW parsing
+    implementation("org.apache.tika:tika-parsers-standard-package:2.9.2")
+}

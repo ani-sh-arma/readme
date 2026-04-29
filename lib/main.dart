@@ -1,38 +1,68 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/theme/app_theme.dart';
+import 'data/database/app_database.dart';
+import 'data/repositories/book_repository.dart';
+import 'data/repositories/bookmark_repository.dart';
+import 'data/repositories/shelf_repository.dart';
+import 'features/collections/view/collections_screen.dart';
+import 'features/library/bloc/library_bloc.dart';
+import 'features/library/view/library_screen.dart';
+import 'features/settings/bloc/settings_cubit.dart';
+import 'features/settings/view/settings_screen.dart';
+import 'features/shelves/bloc/shelves_cubit.dart';
+import 'features/shelves/view/shelves_screen.dart';
+
 void main() {
-  runApp(const ReadMeApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  final db = AppDatabase();
+  runApp(ReadMeApp(db: db));
 }
 
 class ReadMeApp extends StatelessWidget {
-  const ReadMeApp({super.key});
+  const ReadMeApp({super.key, required this.db});
+
+  final AppDatabase db;
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AppShellCubit(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'ReadMe',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF1E5A6B),
-            brightness: Brightness.light,
+    final bookRepo = BookRepository(db);
+    final shelfRepo = ShelfRepository(db);
+    final bookmarkRepo = BookmarkRepository(db);
+    final bookSettingsRepo = BookSettingsRepository(db);
+    final readingSessionRepo = ReadingSessionRepository(db);
+
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: bookRepo),
+        RepositoryProvider.value(value: shelfRepo),
+        RepositoryProvider.value(value: bookmarkRepo),
+        RepositoryProvider.value(value: bookSettingsRepo),
+        RepositoryProvider.value(value: readingSessionRepo),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => AppShellCubit()),
+          BlocProvider(create: (_) => SettingsCubit()),
+          BlocProvider(create: (_) => LibraryBloc(bookRepo)),
+          BlocProvider(
+            create: (_) => ShelvesCubit(shelfRepo, bookRepo),
           ),
-          useMaterial3: true,
+        ],
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, settings) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'ReadMe',
+              theme: AppTheme.light(),
+              darkTheme: AppTheme.dark(),
+              themeMode: settings.themeMode,
+              home: const AppShell(),
+            );
+          },
         ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF89B4C9),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
-        themeMode: ThemeMode.system,
-        home: const AppShell(),
       ),
     );
   }
@@ -67,24 +97,10 @@ class AppShell extends StatelessWidget {
     return BlocBuilder<AppShellCubit, AppShellState>(
       builder: (context, state) {
         final pages = <Widget>[
-          const _HomePlaceholder(
-            title: 'Library',
-            subtitle:
-                'Scanned books, sort and filter controls, and local shelves.',
-          ),
-          const _HomePlaceholder(
-            title: 'Shelves',
-            subtitle: 'Filesystem-backed directory tree and recursive scans.',
-          ),
-          const _HomePlaceholder(
-            title: 'Collections',
-            subtitle:
-                'Reading, read, favourites, bookmarks, and history views.',
-          ),
-          const _HomePlaceholder(
-            title: 'Settings',
-            subtitle: 'Themes, reader defaults, storage, and platform options.',
-          ),
+          const LibraryScreen(),
+          const ShelvesScreen(),
+          const CollectionsScreen(),
+          const SettingsScreen(),
         ];
 
         return Scaffold(
@@ -97,18 +113,22 @@ class AppShell extends StatelessWidget {
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.local_library_outlined),
+                selectedIcon: Icon(Icons.local_library),
                 label: 'Library',
               ),
               NavigationDestination(
                 icon: Icon(Icons.folder_outlined),
+                selectedIcon: Icon(Icons.folder),
                 label: 'Shelves',
               ),
               NavigationDestination(
                 icon: Icon(Icons.bookmarks_outlined),
+                selectedIcon: Icon(Icons.bookmarks),
                 label: 'Collections',
               ),
               NavigationDestination(
                 icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
                 label: 'Settings',
               ),
             ],
@@ -119,50 +139,3 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class _HomePlaceholder extends StatelessWidget {
-  const _HomePlaceholder({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ReadMe',
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(subtitle, style: theme.textTheme.bodyLarge),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.create_new_folder_outlined),
-                label: const Text('Add library root'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
