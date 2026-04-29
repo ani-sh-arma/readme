@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 
 class BookGridItem extends StatelessWidget {
   const BookGridItem({
@@ -28,17 +28,11 @@ class BookGridItem extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              flex: 5,
-              child: _CoverImage(book: book),
-            ),
+            Expanded(flex: 5, child: _CoverImage(book: book)),
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -99,11 +93,7 @@ class BookListItem extends StatelessWidget {
           child: _CoverImage(book: book),
         ),
       ),
-      title: Text(
-        book.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text(
         book.author,
         maxLines: 1,
@@ -112,7 +102,8 @@ class BookListItem extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
-      trailing: trailing ??
+      trailing:
+          trailing ??
           Text(
             book.format.toUpperCase(),
             style: theme.textTheme.labelSmall?.copyWith(

@@ -4,7 +4,6 @@ import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
 
 import '../database/app_database.dart';
-import '../database/tables/shelves_table.dart';
 
 class ShelfRepository {
   const ShelfRepository(this._db);

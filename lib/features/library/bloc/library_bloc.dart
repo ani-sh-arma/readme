@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import 'library_event.dart';
 import 'library_state.dart';
@@ -42,12 +43,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     LibraryScanRequested event,
     Emitter<LibraryState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        isLoading: true,
-        scanProgress: event.directory.path,
-      ),
-    );
+    emit(state.copyWith(isLoading: true, scanProgress: event.directory.path));
     try {
       await _bookRepo.scanDirectory(
         event.directory,
@@ -74,9 +70,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   }
 
   void _onSortChanged(LibrarySortChanged event, Emitter<LibraryState> emit) {
-    emit(
-      state.copyWith(sortField: event.field, ascending: event.ascending),
-    );
+    emit(state.copyWith(sortField: event.field, ascending: event.ascending));
   }
 
   void _onViewModeToggled(

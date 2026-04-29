@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/book_settings_table.dart';
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/bookmark_repository.dart';
 import 'reader_bloc.dart';
@@ -53,16 +52,14 @@ class ReaderCubit extends Cubit<ReaderState> {
 
     // Subscribe to bookmarks and settings changes
     await _bookmarksSub?.cancel();
-    _bookmarksSub = _bookmarkRepo.watchBookmarksForBook(book.id).listen(
-      (bms) => emit(state.copyWith(bookmarks: bms)),
-    );
+    _bookmarksSub = _bookmarkRepo
+        .watchBookmarksForBook(book.id)
+        .listen((bms) => emit(state.copyWith(bookmarks: bms)));
 
     await _settingsSub?.cancel();
-    _settingsSub = _bookSettingsRepo.watchSettings(book.id).listen(
-      (s) {
-        if (s != null) emit(state.copyWith(settings: s));
-      },
-    );
+    _settingsSub = _bookSettingsRepo.watchSettings(book.id).listen((s) {
+      if (s != null) emit(state.copyWith(settings: s));
+    });
   }
 
   void updatePosition(String position) {
@@ -95,11 +92,7 @@ class ReaderCubit extends Cubit<ReaderState> {
       effectivePosition = book.currentPosition;
     }
     if (effectivePosition.isEmpty) return;
-    await _bookmarkRepo.addBookmark(
-      book.id,
-      effectivePosition,
-      label: label,
-    );
+    await _bookmarkRepo.addBookmark(book.id, effectivePosition, label: label);
   }
 
   Future<void> deleteBookmark(int id) async {
@@ -132,5 +125,6 @@ class ReaderCubit extends Cubit<ReaderState> {
     await _settingsSub?.cancel();
 
     emit(const ReaderState());
+    return super.close();
   }
 }

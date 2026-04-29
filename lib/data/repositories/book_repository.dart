@@ -25,19 +25,16 @@ class BookRepository {
 
   Future<List<Book>> getAllBooks() => _db.booksDao.getAllBooks();
   Future<Book?> getBookById(int id) => _db.booksDao.getBookById(id);
-  Future<Book?> getBookByPath(String path) =>
-      _db.booksDao.getBookByPath(path);
+  Future<Book?> getBookByPath(String path) => _db.booksDao.getBookByPath(path);
   Future<List<Book>> searchBooks(String query) =>
       _db.booksDao.searchBooks(query);
 
   // --- mutations ---
 
   /// Inserts or updates a book record. Returns the book id.
-  Future<int> upsertBook(BooksCompanion book) =>
-      _db.booksDao.insertBook(book);
+  Future<int> upsertBook(BooksCompanion book) => _db.booksDao.insertBook(book);
 
-  Future<bool> updateBook(BooksCompanion book) =>
-      _db.booksDao.updateBook(book);
+  Future<bool> updateBook(BooksCompanion book) => _db.booksDao.updateBook(book);
 
   Future<int> deleteBook(int id) => _db.booksDao.deleteBook(id);
 

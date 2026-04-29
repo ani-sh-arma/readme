@@ -3,9 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../../../core/theme/app_theme.dart';
-import '../bloc/reader_bloc.dart';
 import '../bloc/reader_cubit.dart';
 
 class TxtReader extends StatefulWidget {
@@ -58,12 +57,8 @@ class _TxtReaderState extends State<TxtReader> {
     Color fg = preset.foreground;
 
     if (preset == ReaderThemePreset.custom && settings?.customBg != null) {
-      bg = Color(
-        int.parse(settings!.customBg!.replaceFirst('#', '0xFF')),
-      );
-      fg = Color(
-        int.parse(settings.customFg!.replaceFirst('#', '0xFF')),
-      );
+      bg = Color(int.parse(settings!.customBg!.replaceFirst('#', '0xFF')));
+      fg = Color(int.parse(settings.customFg!.replaceFirst('#', '0xFF')));
     }
 
     return Container(

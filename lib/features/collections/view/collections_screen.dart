@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/bookmark_repository.dart';
 import '../../library/widgets/book_items.dart';
@@ -55,10 +55,7 @@ class CollectionsScreen extends StatelessWidget {
 }
 
 class _BookStreamList extends StatelessWidget {
-  const _BookStreamList({
-    required this.stream,
-    required this.emptyMessage,
-  });
+  const _BookStreamList({required this.stream, required this.emptyMessage});
 
   final Stream<List<Book>> stream;
   final String emptyMessage;

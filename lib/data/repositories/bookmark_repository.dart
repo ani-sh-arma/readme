@@ -1,8 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../database/app_database.dart';
-import '../database/tables/bookmarks_table.dart';
-import '../database/tables/book_settings_table.dart';
 
 class BookmarkRepository {
   const BookmarkRepository(this._db);

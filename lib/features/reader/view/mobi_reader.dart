@@ -1,10 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/books_table.dart';
-import '../bloc/reader_cubit.dart';
+import '../../../data/database/app_database.dart';
 import '../services/mobi_converter_service.dart';
 import 'txt_reader.dart';
 

@@ -30,7 +30,7 @@ class ReadingSessionsDao extends DatabaseAccessor<AppDatabase>
 
   Future<int> totalPagesReadForBook(int bookId) async {
     final sessions = await getSessionsForBook(bookId);
-    return sessions.fold(0, (sum, s) => sum + s.pagesRead);
+    return sessions.fold<int>(0, (sum, session) => sum + session.pagesRead);
   }
 
   Future<Duration> totalReadingTimeForBook(int bookId) async {

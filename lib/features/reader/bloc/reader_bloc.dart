@@ -1,8 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../data/database/tables/book_settings_table.dart';
-import '../../../data/database/tables/bookmarks_table.dart';
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 
 // --- Events ---
 
@@ -80,6 +78,13 @@ class ReaderState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [book, settings, bookmarks, isLoading, showUi, error, sessionId];
+  List<Object?> get props => [
+    book,
+    settings,
+    bookmarks,
+    isLoading,
+    showUi,
+    error,
+    sessionId,
+  ];
 }

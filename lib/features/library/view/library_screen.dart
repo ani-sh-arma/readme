@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/library_bloc.dart';
 import '../bloc/library_event.dart';
 import '../bloc/library_state.dart';
@@ -49,11 +49,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       }
     }
 
-    final path = await FilePicker.platform.getDirectoryPath();
+    final path = await FilePicker.getDirectoryPath();
     if (path != null && context.mounted) {
-      context
-          .read<LibraryBloc>()
-          .add(LibraryScanRequested(Directory(path)));
+      context.read<LibraryBloc>().add(LibraryScanRequested(Directory(path)));
     }
   }
 
@@ -95,14 +93,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
-                              context
-                                  .read<LibraryBloc>()
-                                  .add(LibrarySearchChanged(''));
+                              context.read<LibraryBloc>().add(
+                                LibrarySearchChanged(''),
+                              );
                             },
                           ),
                       ],
-                      onChanged: (v) =>
-                          context.read<LibraryBloc>().add(LibrarySearchChanged(v)),
+                      onChanged: (v) => context.read<LibraryBloc>().add(
+                        LibrarySearchChanged(v),
+                      ),
                     ),
                   ),
                   const SortFilterBar(),
@@ -237,8 +236,9 @@ class _BookMenuSheet extends StatelessWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.star_outline),
-            title:
-                Text(book.isFavorite ? 'Remove from favourites' : 'Add to favourites'),
+            title: Text(
+              book.isFavorite ? 'Remove from favourites' : 'Add to favourites',
+            ),
             onTap: () {
               context.read<LibraryBloc>().add(
                 LibraryBookFavoriteToggled(

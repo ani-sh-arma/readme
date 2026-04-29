@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/bookmark_repository.dart';
 import '../bloc/reader_bloc.dart';
@@ -140,10 +140,7 @@ class _TopBar extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.transparent,
-            ],
+            colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
           ),
         ),
         child: SafeArea(
@@ -165,7 +162,10 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.bookmark_add_outlined, color: Colors.white),
+                icon: const Icon(
+                  Icons.bookmark_add_outlined,
+                  color: Colors.white,
+                ),
                 tooltip: 'Add bookmark',
                 onPressed: () => _showAddBookmark(context),
               ),
@@ -198,13 +198,13 @@ class _TopBar extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              context
-                  .read<ReaderCubit>()
-                  .addBookmark(label: controller.text.trim());
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Bookmark added')),
+              context.read<ReaderCubit>().addBookmark(
+                label: controller.text.trim(),
               );
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Bookmark added')));
             },
             child: const Text('Add'),
           ),
@@ -257,12 +257,15 @@ class _BottomBar extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                  children: [
                     Text(
-                        (book?.currentPosition.isNotEmpty ?? false)
-                            ? 'Position: ${book!.currentPosition}'
-                            : '',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      (book?.currentPosition.isNotEmpty ?? false)
+                          ? 'Position: ${book!.currentPosition}'
+                          : '',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                     if (bookmarks.isNotEmpty)
                       GestureDetector(
@@ -309,22 +312,25 @@ class _BottomBar extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            ...state.bookmarks.map(
-              (bm) => ListTile(
+            ...state.bookmarks.map((bm) {
+              final bookmark = bm;
+              return ListTile(
                 leading: const Icon(Icons.bookmark_outlined),
                 title: Text(
-                  bm.label.isNotEmpty ? bm.label : bm.position,
+                  bookmark.label.isNotEmpty
+                      ? bookmark.label
+                      : bookmark.position,
                 ),
-                subtitle: Text(bm.createdAt.toLocal().toString()),
+                subtitle: Text(bookmark.createdAt.toLocal().toString()),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () {
-                    context.read<ReaderCubit>().deleteBookmark(bm.id);
+                    context.read<ReaderCubit>().deleteBookmark(bookmark.id);
                     Navigator.pop(ctx);
                   },
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),

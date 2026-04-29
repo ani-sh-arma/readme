@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/shelves_table.dart';
+import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/shelf_repository.dart';
 import 'shelves_bloc.dart';
@@ -22,12 +22,10 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   Future<void> start() async {
     emit(state.copyWith(isLoading: true));
     await _sub?.cancel();
-    _sub = _shelfRepo.watchAllShelves().listen(
-      (shelves) {
-        _syncDirectoryWatchers(shelves);
-        emit(state.copyWith(shelves: shelves, isLoading: false));
-      },
-    );
+    _sub = _shelfRepo.watchAllShelves().listen((shelves) {
+      _syncDirectoryWatchers(shelves);
+      emit(state.copyWith(shelves: shelves, isLoading: false));
+    });
   }
 
   Future<void> addDirectory(Directory dir) async {
@@ -67,8 +65,9 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   void _syncDirectoryWatchers(List<Shelf> shelves) {
     final currentPaths = shelves.map((shelf) => shelf.dirPath).toSet();
 
-    final stalePaths =
-        _directoryWatchers.keys.where((p) => !currentPaths.contains(p)).toList();
+    final stalePaths = _directoryWatchers.keys
+        .where((p) => !currentPaths.contains(p))
+        .toList();
     for (final path in stalePaths) {
       _directoryWatchers[path]?.cancel();
       _directoryWatchers.remove(path);
@@ -105,16 +104,13 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     _directoryWatchers[shelf.dirPath] = sub;
   }
 
-  void _enqueueWatcherWork(
-    String path,
-    Future<void> Function() action,
-  ) {
+  void _enqueueWatcherWork(String path, Future<void> Function() action) {
     final queue = _watcherQueues[path] ?? Future.value();
-    _watcherQueues[path] =
-        queue.then((_) => action()).catchError((error, stackTrace) {
-      debugPrint(
-        'Directory watch error for $path: $error\n$stackTrace',
-      );
+    _watcherQueues[path] = queue.then((_) => action()).catchError((
+      error,
+      stackTrace,
+    ) {
+      debugPrint('Directory watch error for $path: $error\n$stackTrace');
     });
   }
 }

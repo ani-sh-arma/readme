@@ -126,21 +126,13 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * Converts a MOBI/AZW file to HTML using Apache Tika and writes the result
-     * to [destFile]. Returns the path to the written HTML file.
-     *
-     * Tika is a large dependency; if size is a concern consider replacing with
-     * a lightweight custom Palm-format reader.
+     * MOBI/AZW conversion is currently disabled on Android builds that target
+     * pre-26 devices because the parser stack requires newer APIs.
      */
     private fun convertMobiToHtml(path: String, destFile: String): String {
-        val inputFile = File(path)
-        val outputFile = File(destFile).also { it.parentFile?.mkdirs() }
-
-        val tika = org.apache.tika.Tika()
-        val html = tika.parseToString(inputFile)
-
-        outputFile.writeText(html)
-        return outputFile.absolutePath
+        throw UnsupportedOperationException(
+            "MOBI/AZW conversion is unavailable in this Android build.",
+        )
     }
 }
 

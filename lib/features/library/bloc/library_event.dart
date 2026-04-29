@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import 'library_state.dart';
 
 abstract class LibraryEvent {}

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfx/pdfx.dart';
 
-import '../../../data/database/tables/books_table.dart';
-import '../bloc/reader_bloc.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
 class PdfReader extends StatefulWidget {
@@ -17,7 +16,6 @@ class PdfReader extends StatefulWidget {
 
 class _PdfReaderState extends State<PdfReader> {
   PdfController? _controller;
-  int _currentPage = 1;
 
   @override
   void initState() {
@@ -41,7 +39,6 @@ class _PdfReaderState extends State<PdfReader> {
       controller: _controller!,
       scrollDirection: Axis.horizontal,
       onPageChanged: (page) {
-        setState(() => _currentPage = page);
         context.read<ReaderCubit>().updatePosition(page.toString());
       },
       builders: PdfViewBuilders<DefaultBuilderOptions>(

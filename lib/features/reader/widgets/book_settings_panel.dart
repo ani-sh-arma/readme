@@ -5,7 +5,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/database/tables/book_settings_table.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/reader_bloc.dart';
 import '../bloc/reader_cubit.dart';
 
@@ -41,12 +41,13 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Theme presets
-              Text(
-                'Theme',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              Text('Theme', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
-              _ThemeRow(currentTheme: settings.theme, cubit: cubit, settings: settings),
+              _ThemeRow(
+                currentTheme: settings.theme,
+                cubit: cubit,
+                settings: settings,
+              ),
               const Divider(),
               // Font size
               Row(
@@ -224,9 +225,7 @@ class _ThemeRow extends StatelessWidget {
         ? Color(int.parse(settings.customFg!.replaceFirst('#', '0xFF')))
         : Colors.black;
     Color accent = settings.customAccent != null
-        ? Color(
-            int.parse(settings.customAccent!.replaceFirst('#', '0xFF')),
-          )
+        ? Color(int.parse(settings.customAccent!.replaceFirst('#', '0xFF')))
         : const Color(0xFF1E5A6B);
 
     showDialog<void>(
@@ -254,10 +253,15 @@ class _ThemeRow extends StatelessWidget {
                 BookSettingsCompanion(
                   bookId: Value(settings.bookId),
                   theme: const Value('Custom'),
-                  customBg: Value('#${bg.value.toRadixString(16).padLeft(8, '0')}'),
-                  customFg: Value('#${fg.value.toRadixString(16).padLeft(8, '0')}'),
-                  customAccent:
-                      Value('#${accent.value.toRadixString(16).padLeft(8, '0')}'),
+                  customBg: Value(
+                    '#${bg.value.toRadixString(16).padLeft(8, '0')}',
+                  ),
+                  customFg: Value(
+                    '#${fg.value.toRadixString(16).padLeft(8, '0')}',
+                  ),
+                  customAccent: Value(
+                    '#${accent.value.toRadixString(16).padLeft(8, '0')}',
+                  ),
                 ),
               );
               Navigator.pop(ctx);

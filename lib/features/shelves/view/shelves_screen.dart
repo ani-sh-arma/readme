@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../../data/database/tables/shelves_table.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/shelves_bloc.dart';
 import '../bloc/shelves_cubit.dart';
 
@@ -37,7 +37,7 @@ class _ShelvesScreenState extends State<ShelvesScreen> {
       }
     }
 
-    final path = await FilePicker.platform.getDirectoryPath();
+    final path = await FilePicker.getDirectoryPath();
     if (path != null && context.mounted) {
       await context.read<ShelvesCubit>().addDirectory(Directory(path));
     }
@@ -71,9 +71,10 @@ class _ShelvesScreenState extends State<ShelvesScreen> {
     );
     if (confirmed == true && controller.text.trim().isNotEmpty) {
       if (context.mounted) {
-        await context
-            .read<ShelvesCubit>()
-            .createSubDirectory(parentPath, controller.text.trim());
+        await context.read<ShelvesCubit>().createSubDirectory(
+          parentPath,
+          controller.text.trim(),
+        );
       }
     }
   }

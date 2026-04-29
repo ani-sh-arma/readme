@@ -1,9 +1,10 @@
+import 'dart:io';
+
 import 'package:epub_view/epub_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/database/tables/books_table.dart';
-import '../bloc/reader_bloc.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
 class EpubReader extends StatefulWidget {
@@ -22,7 +23,7 @@ class _EpubReaderState extends State<EpubReader> {
   void initState() {
     super.initState();
     _controller = EpubController(
-      document: EpubDocument.openFile(widget.book.filePath),
+      document: EpubDocument.openFile(File(widget.book.filePath)),
       epubCfi: widget.book.currentPosition.isNotEmpty
           ? widget.book.currentPosition
           : null,
@@ -45,9 +46,10 @@ class _EpubReaderState extends State<EpubReader> {
       onDocumentError: (e) {
         debugPrint('EPUB error: $e');
       },
-      onChapterChanged: (chapter) {
-        if (chapter?.startCfi != null) {
-          context.read<ReaderCubit>().updatePosition(chapter!.startCfi!);
+      onChapterChanged: (_) {
+        final cfi = _controller?.generateEpubCfi();
+        if (cfi != null && cfi.isNotEmpty) {
+          context.read<ReaderCubit>().updatePosition(cfi);
         }
       },
       builders: EpubViewBuilders<DefaultBuilderOptions>(

@@ -1,9 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
-import '../../../data/database/tables/shelves_table.dart';
+import '../../../data/database/app_database.dart';
 
 // --- Events ---
 

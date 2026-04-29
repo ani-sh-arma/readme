@@ -25,7 +25,13 @@ class MobiConverterService {
       });
       return result;
     } on PlatformException catch (e) {
-      throw Exception('MOBI conversion failed: ${e.message}');
+      final message = e.message ?? 'Unknown platform error';
+      if (message.contains('unavailable in this Android build')) {
+        throw Exception(
+          'MOBI/AZW reading is temporarily unavailable in this Android build.',
+        );
+      }
+      throw Exception('MOBI conversion failed: $message');
     }
   }
 }

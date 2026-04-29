@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 
 enum LibrarySortField { title, author, dateAdded, lastRead, fileSize, format }
 
@@ -118,14 +118,17 @@ class LibraryState extends Equatable {
       sortField: sortField ?? this.sortField,
       ascending: ascending ?? this.ascending,
       viewMode: viewMode ?? this.viewMode,
-      formatFilter:
-          clearFormatFilter ? null : (formatFilter ?? this.formatFilter),
-      statusFilter:
-          clearStatusFilter ? null : (statusFilter ?? this.statusFilter),
+      formatFilter: clearFormatFilter
+          ? null
+          : (formatFilter ?? this.formatFilter),
+      statusFilter: clearStatusFilter
+          ? null
+          : (statusFilter ?? this.statusFilter),
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
       searchQuery: searchQuery ?? this.searchQuery,
-      scanProgress:
-          clearScanProgress ? null : (scanProgress ?? this.scanProgress),
+      scanProgress: clearScanProgress
+          ? null
+          : (scanProgress ?? this.scanProgress),
     );
   }
 

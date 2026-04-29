@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
@@ -57,9 +56,7 @@ class SettingsScreen extends StatelessWidget {
                 trailing: DropdownButton<String>(
                   value: state.defaultFontFamily,
                   items: AppConstants.readerFonts
-                      .map(
-                        (f) => DropdownMenuItem(value: f, child: Text(f)),
-                      )
+                      .map((f) => DropdownMenuItem(value: f, child: Text(f)))
                       .toList(),
                   onChanged: (v) {
                     if (v != null) cubit.setDefaultFontFamily(v);

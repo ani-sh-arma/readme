@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 import '../services/cbr_extractor_service.dart';
 import '../services/volume_key_service.dart';
@@ -100,10 +100,7 @@ class _CbrReaderState extends State<CbrReader> {
     }
     if (_imagePaths.isEmpty) {
       return const Center(
-        child: Text(
-          'No pages found.',
-          style: TextStyle(color: Colors.white),
-        ),
+        child: Text('No pages found.', style: TextStyle(color: Colors.white)),
       );
     }
 
@@ -113,8 +110,9 @@ class _CbrReaderState extends State<CbrReader> {
           child: PhotoViewGallery.builder(
             scrollPhysics: const BouncingScrollPhysics(),
             builder: (ctx, index) {
-              final pageIndex =
-                  _mangaMode ? (_imagePaths.length - 1 - index) : index;
+              final pageIndex = _mangaMode
+                  ? (_imagePaths.length - 1 - index)
+                  : index;
               return PhotoViewGalleryPageOptions(
                 imageProvider: FileImage(File(_imagePaths[pageIndex])),
                 minScale: PhotoViewComputedScale.contained,

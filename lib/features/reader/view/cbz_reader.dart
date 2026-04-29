@@ -7,7 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
-import '../../../data/database/tables/books_table.dart';
+import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
 class CbzReader extends StatefulWidget {
@@ -42,21 +42,20 @@ class _CbzReaderState extends State<CbzReader> {
       final archive = ZipDecoder().decodeBytes(bytes);
 
       // Sort files: typical naming conventions put pages in order
-      final imageFiles = archive.files
-          .where(
-            (f) =>
-                f.isFile &&
-                (f.name.endsWith('.jpg') ||
-                    f.name.endsWith('.jpeg') ||
-                    f.name.endsWith('.png') ||
-                    f.name.endsWith('.webp')),
-          )
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+      final imageFiles =
+          archive.files
+              .where(
+                (f) =>
+                    f.isFile &&
+                    (f.name.endsWith('.jpg') ||
+                        f.name.endsWith('.jpeg') ||
+                        f.name.endsWith('.png') ||
+                        f.name.endsWith('.webp')),
+              )
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
 
-      final pages = imageFiles
-          .map((f) => f.content as Uint8List)
-          .toList();
+      final pages = imageFiles.map((f) => f.content as Uint8List).toList();
 
       if (mounted) {
         setState(() {
@@ -94,8 +93,9 @@ class _CbzReaderState extends State<CbzReader> {
             scrollPhysics: const BouncingScrollPhysics(),
             builder: (ctx, index) {
               // In manga mode, display pages right-to-left
-              final pageIndex =
-                  _mangaMode ? (_pages.length - 1 - index) : index;
+              final pageIndex = _mangaMode
+                  ? (_pages.length - 1 - index)
+                  : index;
               return PhotoViewGalleryPageOptions(
                 imageProvider: MemoryImage(_pages[pageIndex]),
                 minScale: PhotoViewComputedScale.contained,
@@ -125,10 +125,7 @@ class _CbzReaderState extends State<CbzReader> {
               ),
               Row(
                 children: [
-                  const Text(
-                    'Manga',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  const Text('Manga', style: TextStyle(color: Colors.white)),
                   Switch(
                     value: _mangaMode,
                     onChanged: (v) => setState(() => _mangaMode = v),
