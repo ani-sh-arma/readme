@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfx/pdfx.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
@@ -33,11 +34,81 @@ class _PdfReaderState extends State<PdfReader> {
     super.dispose();
   }
 
+  // Color matrix that inverts RGB while preserving alpha. Used to render
+  // light-on-dark PDFs when the reader theme is dark.
+  static const List<double> _invertMatrix = <double>[
+    -1, 0, 0, 0, 255, //
+    0, -1, 0, 0, 255, //
+    0, 0, -1, 0, 255, //
+    0, 0, 0, 1, 0, //
+  ];
+
+  bool _isDarkPreset(ReaderThemePreset p) =>
+      p == ReaderThemePreset.dark || p == ReaderThemePreset.amoled;
+
+  PhotoViewGalleryPageOptions _buildPage(
+    BuildContext context,
+    Future<PdfPageImage> pageImage,
+    int index,
+    PdfDocument document,
+    bool invert,
+  ) {
+    if (!invert) {
+      return PhotoViewGalleryPageOptions(
+        imageProvider: PdfPageImageProvider(pageImage, index, document.id),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.contained * 3.0,
+        initialScale: PhotoViewComputedScale.contained,
+        heroAttributes: PhotoViewHeroAttributes(tag: '${document.id}-$index'),
+      );
+    }
+
+    final viewport = MediaQuery.sizeOf(context);
+
+    return PhotoViewGalleryPageOptions.customChild(
+      minScale: PhotoViewComputedScale.contained,
+      maxScale: PhotoViewComputedScale.contained * 3.0,
+      initialScale: PhotoViewComputedScale.contained,
+      heroAttributes: PhotoViewHeroAttributes(tag: '${document.id}-$index'),
+      childSize: Size(viewport.width, viewport.height),
+      child: Center(
+        child: FutureBuilder<PdfPageImage>(
+          future: pageImage,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const CircularProgressIndicator();
+            }
+
+            return ColorFiltered(
+              colorFilter: const ColorFilter.matrix(_invertMatrix),
+              child: Image(
+                image: PdfPageImageProvider(pageImage, index, document.id),
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PdfView(
+    final state = context.watch<ReaderCubit>().state;
+    final settings = state.settings;
+
+    final preset = ReaderThemePreset.values.firstWhere(
+      (p) => p.label == (settings?.theme ?? 'Light'),
+      orElse: () => ReaderThemePreset.light,
+    );
+    final invert = _isDarkPreset(preset);
+    final bg = invert ? Colors.black : Colors.white;
+
+    Widget pdf = PdfView(
       controller: _controller!,
       scrollDirection: Axis.horizontal,
+      backgroundDecoration: BoxDecoration(color: bg),
       onPageChanged: (page) {
         context.read<ReaderCubit>().updatePosition(page.toString());
       },
@@ -47,9 +118,13 @@ class _PdfReaderState extends State<PdfReader> {
             const Center(child: CircularProgressIndicator()),
         pageLoaderBuilder: (_) =>
             const Center(child: CircularProgressIndicator()),
+        pageBuilder: (context, pageImage, index, document) =>
+            _buildPage(context, pageImage, index, document, invert),
         errorBuilder: (_, error) =>
             Center(child: Text('Error loading PDF: $error')),
       ),
     );
+
+    return Container(color: bg, child: pdf);
   }
 }

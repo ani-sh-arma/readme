@@ -8,6 +8,24 @@ import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/bookmark_repository.dart';
 import 'reader_bloc.dart';
 
+/// Default reader preferences sourced from the global Settings screen and
+/// applied to a book the first time its per-book settings row is created.
+class ReaderDefaults {
+  const ReaderDefaults({
+    required this.fontSize,
+    required this.fontFamily,
+    required this.lineHeight,
+    required this.scrollMode,
+    required this.theme,
+  });
+
+  final double fontSize;
+  final String fontFamily;
+  final double lineHeight;
+  final String scrollMode;
+  final String theme;
+}
+
 class ReaderCubit extends Cubit<ReaderState> {
   ReaderCubit(
     this._bookRepo,
@@ -26,14 +44,33 @@ class ReaderCubit extends Cubit<ReaderState> {
   Timer? _positionDebounce;
   String _pendingPosition = '';
 
-  Future<void> open(Book book) async {
+  Future<void> open(Book book, {ReaderDefaults? defaults}) async {
     emit(state.copyWith(book: book, isLoading: true));
 
-    // Load or create default settings
+    // Load existing settings, or create a new row seeded with the user's
+    // global reader defaults so changes in the Settings screen take effect for
+    // newly opened books.
     var settings = await _bookSettingsRepo.getSettings(book.id);
     if (settings == null) {
       await _bookSettingsRepo.upsertSettings(
-        BookSettingsCompanion(bookId: Value(book.id)),
+        BookSettingsCompanion(
+          bookId: Value(book.id),
+          fontSize: defaults != null
+              ? Value(defaults.fontSize)
+              : const Value.absent(),
+          fontFamily: defaults != null
+              ? Value(defaults.fontFamily)
+              : const Value.absent(),
+          lineHeight: defaults != null
+              ? Value(defaults.lineHeight)
+              : const Value.absent(),
+          scrollMode: defaults != null
+              ? Value(defaults.scrollMode)
+              : const Value.absent(),
+          theme: defaults != null
+              ? Value(defaults.theme)
+              : const Value.absent(),
+        ),
       );
       settings = await _bookSettingsRepo.getSettings(book.id);
     }
@@ -107,6 +144,7 @@ class ReaderCubit extends Cubit<ReaderState> {
     emit(state.copyWith(showUi: !state.showUi));
   }
 
+  @override
   Future<void> close() async {
     _positionDebounce?.cancel();
 

@@ -22,6 +22,7 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final _searchController = TextEditingController();
+  bool _searchVisible = false;
 
   @override
   void initState() {
@@ -33,6 +34,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _searchVisible = !_searchVisible;
+      if (!_searchVisible) {
+        _searchController.clear();
+        context.read<LibraryBloc>().add(LibrarySearchChanged(''));
+      }
+    });
   }
 
   Future<void> _pickDirectory(BuildContext context) async {
@@ -64,6 +75,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             title: const Text('Library'),
             actions: [
               IconButton(
+                icon: Icon(_searchVisible ? Icons.close : Icons.search),
+                onPressed: _toggleSearch,
+                tooltip: _searchVisible ? 'Close search' : 'Search',
+              ),
+              IconButton(
                 icon: Icon(
                   state.viewMode == LibraryViewMode.grid
                       ? Icons.view_list_outlined
@@ -75,35 +91,41 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ],
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(96),
+              preferredSize: Size.fromHeight(_searchVisible ? 108 : 48),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    child: SearchBar(
-                      controller: _searchController,
-                      hintText: 'Search books…',
-                      leading: const Icon(Icons.search),
-                      trailing: [
-                        if (_searchController.text.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              context.read<LibraryBloc>().add(
-                                LibrarySearchChanged(''),
-                              );
-                            },
-                          ),
-                      ],
-                      onChanged: (v) => context.read<LibraryBloc>().add(
-                        LibrarySearchChanged(v),
+                  if (_searchVisible)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: SearchBar(
+                        controller: _searchController,
+                        hintText: 'Search books…',
+                        leading: const Icon(Icons.search),
+                        autoFocus: true,
+                        trailing: [
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                context.read<LibraryBloc>().add(
+                                  LibrarySearchChanged(''),
+                                );
+                                setState(() {});
+                              },
+                            ),
+                        ],
+                        onChanged: (v) {
+                          context.read<LibraryBloc>().add(
+                            LibrarySearchChanged(v),
+                          );
+                          setState(() {});
+                        },
                       ),
                     ),
-                  ),
                   const SortFilterBar(),
                 ],
               ),
@@ -173,9 +195,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         },
         child: GridView.builder(
           padding: const EdgeInsets.all(12),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 180,
-            childAspectRatio: 0.6,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.62,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),

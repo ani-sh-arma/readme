@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
 import '../../../data/repositories/bookmark_repository.dart';
+import '../../settings/bloc/settings_cubit.dart';
 import '../bloc/reader_bloc.dart';
 import '../bloc/reader_cubit.dart';
 import '../widgets/book_settings_panel.dart';
@@ -22,13 +23,21 @@ class ReaderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.read<SettingsCubit>().state;
+    final defaults = ReaderDefaults(
+      fontSize: settings.defaultFontSize,
+      fontFamily: settings.defaultFontFamily,
+      lineHeight: settings.defaultLineHeight,
+      scrollMode: settings.defaultScrollMode,
+      theme: settings.defaultReaderTheme,
+    );
     return BlocProvider(
       create: (ctx) => ReaderCubit(
         ctx.read<BookRepository>(),
         ctx.read<BookmarkRepository>(),
         ctx.read<BookSettingsRepository>(),
         ctx.read<ReadingSessionRepository>(),
-      )..open(book),
+      )..open(book, defaults: defaults),
       child: _ReaderView(book: book),
     );
   }
