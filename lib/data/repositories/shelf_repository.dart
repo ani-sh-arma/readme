@@ -23,6 +23,8 @@ class ShelfRepository {
     String dirPath, {
     int? parentId,
     bool scanRecursive = true,
+    bool isRoot = false,
+    int displayOrder = 0,
   }) {
     final name = p.basename(dirPath);
     return _db.shelvesDao.insertShelf(
@@ -31,19 +33,31 @@ class ShelfRepository {
         dirPath: Value(dirPath),
         parentShelfId: Value(parentId),
         scanRecursive: Value(scanRecursive),
+        isRoot: Value(isRoot),
+        lastScannedAt: Value(DateTime.now()),
+        displayOrder: Value(displayOrder),
       ),
     );
   }
 
-  /// Registers [dir] and all its direct sub-directories as shelves in the DB.
-  Future<void> registerDirectoryTree(Directory dir) async {
-    await addShelf(dir.path);
-    await for (final entity in dir.list(recursive: false)) {
-      if (entity is Directory) {
-        final shelf = await _db.shelvesDao.getShelfByPath(dir.path);
-        await addShelf(entity.path, parentId: shelf?.id);
-      }
-    }
+  Future<void> registerDirectoryTree(
+    Directory dir, {
+    bool scanRecursive = true,
+  }) async {
+    final visitedPaths = <String>{};
+    final rootId = await addShelf(
+      dir.path,
+      isRoot: true,
+      scanRecursive: scanRecursive,
+    );
+    visitedPaths.add(dir.path);
+    await _registerChildrenRecursive(
+      dir,
+      parentId: rootId,
+      scanRecursive: scanRecursive,
+      visitedPaths: visitedPaths,
+    );
+    await _removeStaleShelves(dir.path, visitedPaths);
   }
 
   Future<int> removeShelf(int id) => _db.shelvesDao.deleteShelf(id);
@@ -58,7 +72,63 @@ class ShelfRepository {
       await newDir.create(recursive: true);
     }
     final parent = await _db.shelvesDao.getShelfByPath(parentPath);
-    await addShelf(newDir.path, parentId: parent?.id);
+    await addShelf(
+      newDir.path,
+      parentId: parent?.id,
+      scanRecursive: parent?.scanRecursive ?? true,
+    );
     return _db.shelvesDao.getShelfByPath(newDir.path);
+  }
+
+  Future<void> updateScanRecursive(int id, bool recursive) async {
+    await _db.shelvesDao.updateScanRecursive(id, recursive);
+  }
+
+  Future<void> _registerChildrenRecursive(
+    Directory dir, {
+    required int parentId,
+    required bool scanRecursive,
+    required Set<String> visitedPaths,
+  }) async {
+    final children = await dir.list(recursive: false, followLinks: false).toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+
+    var displayOrder = 0;
+    for (final entity in children) {
+      if (entity is! Directory) continue;
+      final childId = await addShelf(
+        entity.path,
+        parentId: parentId,
+        scanRecursive: scanRecursive,
+        displayOrder: displayOrder++,
+      );
+      visitedPaths.add(entity.path);
+      await _registerChildrenRecursive(
+        entity,
+        parentId: childId,
+        scanRecursive: scanRecursive,
+        visitedPaths: visitedPaths,
+      );
+    }
+  }
+
+  Future<void> _removeStaleShelves(
+    String rootPath,
+    Set<String> visitedPaths,
+  ) async {
+    final shelves = await getAllShelves();
+    for (final shelf in shelves) {
+      if (!_isInRoot(shelf.dirPath, rootPath)) continue;
+      if (!visitedPaths.contains(shelf.dirPath)) {
+        await removeShelf(shelf.id);
+      }
+    }
+  }
+
+  bool _isInRoot(String candidate, String rootPath) {
+    final normalizedCandidate = candidate.replaceAll('\\', '/');
+    final normalizedRoot = rootPath.replaceAll('\\', '/');
+    return normalizedCandidate == normalizedRoot ||
+        normalizedCandidate.startsWith('$normalizedRoot/');
   }
 }

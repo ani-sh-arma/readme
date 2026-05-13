@@ -12,6 +12,7 @@ import '../bloc/library_state.dart';
 import '../widgets/book_items.dart';
 import '../widgets/sort_filter_bar.dart';
 import '../../reader/view/reader_screen.dart';
+import '../../shelves/bloc/shelves_cubit.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -62,7 +63,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     final path = await FilePicker.getDirectoryPath();
     if (path != null && context.mounted) {
-      context.read<LibraryBloc>().add(LibraryScanRequested(Directory(path)));
+      final directory = Directory(path);
+      context.read<LibraryBloc>().add(LibraryScanRequested(directory));
+      await context.read<ShelvesCubit>().addDirectory(directory);
     }
   }
 
@@ -275,6 +278,9 @@ class _BookMenuSheet extends StatelessWidget {
             leading: const Icon(Icons.check_circle_outline),
             title: Text(book.isRead ? 'Mark as unread' : 'Mark as read'),
             onTap: () {
+              context.read<LibraryBloc>().add(
+                LibraryBookReadToggled(book.id, isRead: !book.isRead),
+              );
               Navigator.pop(context);
             },
           ),

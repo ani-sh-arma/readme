@@ -12,6 +12,7 @@ import '../widgets/book_settings_panel.dart';
 import 'cbr_reader.dart';
 import 'cbz_reader.dart';
 import 'epub_reader.dart';
+import 'html_reader.dart';
 import 'mobi_reader.dart';
 import 'pdf_reader.dart';
 import 'txt_reader.dart';
@@ -37,6 +38,7 @@ class ReaderScreen extends StatelessWidget {
         ctx.read<BookmarkRepository>(),
         ctx.read<BookSettingsRepository>(),
         ctx.read<ReadingSessionRepository>(),
+        ctx.read<HighlightRepository>(),
       )..open(book, defaults: defaults),
       child: _ReaderView(book: book),
     );
@@ -61,35 +63,44 @@ class _ReaderViewState extends State<_ReaderView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ReaderCubit, ReaderState>(
-      builder: (context, state) {
-        if (state.isLoading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+    return BlocListener<ReaderCubit, ReaderState>(
+      listenWhen: (previous, current) =>
+          previous.closeRequested != current.closeRequested,
+      listener: (context, state) {
+        if (state.closeRequested && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
+      },
+      child: BlocBuilder<ReaderCubit, ReaderState>(
+        builder: (context, state) {
+          if (state.isLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.light,
-          child: Scaffold(
-            backgroundColor: Colors.black,
-            body: GestureDetector(
-              onTap: () => context.read<ReaderCubit>().toggleUi(),
-              child: Stack(
-                children: [
-                  // Reader content
-                  _buildReader(state),
-                  // Top chrome
-                  if (state.showUi && state.book != null)
-                    _TopBar(book: state.book!),
-                  // Bottom chrome
-                  if (state.showUi) const _BottomBar(),
-                ],
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: Scaffold(
+              backgroundColor: Colors.black,
+              body: GestureDetector(
+                onTap: () => context.read<ReaderCubit>().toggleUi(),
+                child: Stack(
+                  children: [
+                    // Reader content
+                    _buildReader(state),
+                    // Top chrome
+                    if (state.showUi && state.book != null)
+                      _TopBar(book: state.book!),
+                    // Bottom chrome
+                    if (state.showUi) const _BottomBar(),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -101,9 +112,10 @@ class _ReaderViewState extends State<_ReaderView> {
       case 'pdf':
         return PdfReader(book: widget.book);
       case 'txt':
+        return TxtReader(book: widget.book);
       case 'html':
       case 'htm':
-        return TxtReader(book: widget.book);
+        return HtmlReader(book: widget.book);
       case 'cbz':
         return CbzReader(book: widget.book);
       case 'cbr':

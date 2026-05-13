@@ -67,3 +67,33 @@ class ReadingSessionRepository {
   Stream<List<ReadingSession>> watchAllSessions() =>
       _db.readingSessionsDao.watchAllSessions();
 }
+
+class HighlightRepository {
+  const HighlightRepository(this._db);
+
+  final AppDatabase _db;
+
+  Stream<List<Highlight>> watchHighlightsForBook(int bookId) =>
+      _db.highlightsDao.watchHighlightsForBook(bookId);
+
+  Future<List<Highlight>> getHighlightsForBook(int bookId) =>
+      _db.highlightsDao.getHighlightsForBook(bookId);
+
+  Future<int> addHighlight(
+    int bookId,
+    String cfiRange,
+    String selectedText, {
+    String color = 'yellow',
+  }) => _db.highlightsDao.insertHighlight(
+    HighlightsCompanion(
+      bookId: Value(bookId),
+      cfiRange: Value(cfiRange),
+      selectedText: Value(selectedText),
+      color: Value(color),
+      createdAt: Value(DateTime.now()),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+
+  Future<int> deleteHighlight(int id) => _db.highlightsDao.deleteHighlight(id);
+}

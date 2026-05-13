@@ -6,11 +6,13 @@ import 'package:path/path.dart' as p;
 
 import '../database/app_database.dart';
 import '../database/tables/books_table.dart';
+import '../services/book_media_service.dart';
 
 class BookRepository {
-  const BookRepository(this._db);
+  BookRepository(this._db) : _media = BookMediaService();
 
   final AppDatabase _db;
+  final BookMediaService _media;
 
   // --- streams ---
 
@@ -20,6 +22,10 @@ class BookRepository {
   Stream<List<Book>> watchCurrentlyReading() =>
       _db.booksDao.watchCurrentlyReading();
   Stream<List<Book>> watchHistory() => _db.booksDao.watchHistory();
+  Stream<List<Book>> watchBooksInDirectory(
+    String directoryPath, {
+    bool recursive = true,
+  }) => _db.booksDao.watchBooksInDirectory(directoryPath, recursive: recursive);
 
   // --- queries ---
 
@@ -38,8 +44,17 @@ class BookRepository {
 
   Future<int> deleteBook(int id) => _db.booksDao.deleteBook(id);
 
-  Future<void> updatePosition(int id, String position) =>
-      _db.booksDao.updatePosition(id, position);
+  Future<void> updatePosition(
+    int id,
+    String position, {
+    double? progress,
+  }) => progress == null
+      ? _db.booksDao.updatePosition(id, position)
+      : _db.booksDao.updateReadingProgress(
+          id,
+          position: position,
+          progress: progress,
+        );
 
   Future<void> markFavorite(int id, {required bool isFavorite}) =>
       _db.booksDao.markFavorite(id, isFavorite: isFavorite);
@@ -69,22 +84,35 @@ class BookRepository {
 
     final existing = await getBookByPath(file.path);
     final stat = await file.stat();
+    final metadata = await _media.extractMetadata(
+      file,
+      format: format.name,
+      fallbackTitle: titleFromPath(file.path),
+    );
 
     if (existing != null) {
-      if (existing.fileSize != stat.size) {
-        await updateBook(
-          existing.copyWith(fileSize: stat.size).toCompanion(false),
-        );
-      }
+      await _db.booksDao.updateMetadata(
+        existing.id,
+        title: metadata.title,
+        author: metadata.author,
+        totalPages: metadata.totalPages,
+        coverPath: metadata.coverPath ?? existing.coverPath,
+        coverSource: metadata.coverSource,
+        fileSize: stat.size,
+      );
       return;
     }
 
     await upsertBook(
       BooksCompanion(
-        title: Value(titleFromPath(file.path)),
+        title: Value(metadata.title),
+        author: Value(metadata.author),
         filePath: Value(file.path),
         format: Value(format.name),
         dateAdded: Value(DateTime.now()),
+        coverPath: Value(metadata.coverPath),
+        coverSource: Value(metadata.coverSource),
+        totalPages: Value(metadata.totalPages),
         fileSize: Value(stat.size),
       ),
     );
@@ -135,6 +163,7 @@ class BookRepository {
     void Function(String currentFile)? onProgress,
   }) async {
     int added = 0;
+    final seenPaths = <String>{};
 
     final entities = recursive
         ? dir.list(recursive: true, followLinks: false)
@@ -146,23 +175,35 @@ class BookRepository {
       if (format == BookFormat.unknown || format == BookFormat.djvu) continue;
 
       onProgress?.call(entity.path);
+      seenPaths.add(entity.path);
 
       final existing = await getBookByPath(entity.path);
-      if (existing != null) continue;
+      if (existing != null) {
+        await upsertFromFile(entity);
+        continue;
+      }
 
-      final stat = await entity.stat();
-      await upsertBook(
-        BooksCompanion(
-          title: Value(titleFromPath(entity.path)),
-          filePath: Value(entity.path),
-          format: Value(format.name),
-          dateAdded: Value(DateTime.now()),
-          fileSize: Value(stat.size),
-        ),
-      );
+      await upsertFromFile(entity);
       added++;
     }
 
+    final allBooks = await getAllBooks();
+    for (final book in allBooks) {
+      final inScope = recursive
+          ? _isDescendant(book.filePath, dir.path)
+          : p.dirname(book.filePath) == dir.path;
+      if (!inScope) continue;
+      if (!seenPaths.contains(book.filePath)) {
+        await deleteBook(book.id);
+      }
+    }
+
     return added;
+  }
+
+  bool _isDescendant(String filePath, String rootPath) {
+    final normalizedFile = filePath.replaceAll('\\', '/');
+    final normalizedRoot = rootPath.replaceAll('\\', '/');
+    return normalizedFile.startsWith('$normalizedRoot/');
   }
 }

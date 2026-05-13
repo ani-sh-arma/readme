@@ -3,9 +3,4 @@ targets:
     builders:
       drift_dev:
         options:
-          # Generate companion classes (used for inserts / updates)
           generate_values_in_copy_with: true
-          # Generate ToJson / FromJson methods
-          data_class_to_json: false
-          # Write SQL as comments for easier debugging
-          sql_type_for_singletons: false

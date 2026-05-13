@@ -56,6 +56,20 @@ class BooksDao extends DatabaseAccessor<AppDatabase> with _$BooksDaoMixin {
         ),
       );
 
+  Future<void> updateReadingProgress(
+    int id, {
+    required String position,
+    required double progress,
+  }) => (update(books)..where((b) => b.id.equals(id))).write(
+    BooksCompanion(
+      currentPosition: Value(position),
+      lastOpenedAt: Value(DateTime.now()),
+      lastReadProgress: Value(progress.clamp(0, 1)),
+      isRead: Value(progress >= 0.999),
+      isInReadList: Value(progress >= 0.999),
+    ),
+  );
+
   Future<void> markFavorite(int id, {required bool isFavorite}) =>
       (update(books)..where((b) => b.id.equals(id)))
           .write(BooksCompanion(isFavorite: Value(isFavorite)));
@@ -72,6 +86,25 @@ class BooksDao extends DatabaseAccessor<AppDatabase> with _$BooksDaoMixin {
       (update(books)..where((b) => b.id.equals(id)))
           .write(BooksCompanion(coverPath: Value(coverPath)));
 
+  Future<void> updateMetadata(
+    int id, {
+    required String title,
+    required String author,
+    required int totalPages,
+    String? coverPath,
+    String? coverSource,
+    required int fileSize,
+  }) => (update(books)..where((b) => b.id.equals(id))).write(
+    BooksCompanion(
+      title: Value(title),
+      author: Value(author),
+      totalPages: Value(totalPages),
+      coverPath: Value(coverPath),
+      coverSource: Value(coverSource ?? 'generated'),
+      fileSize: Value(fileSize),
+    ),
+  );
+
   Future<List<Book>> searchBooks(String query) =>
       (select(books)
             ..where(
@@ -79,4 +112,22 @@ class BooksDao extends DatabaseAccessor<AppDatabase> with _$BooksDaoMixin {
                   b.title.like('%$query%') | b.author.like('%$query%'),
             ))
           .get();
+
+  Stream<List<Book>> watchBooksInDirectory(
+    String directoryPath, {
+    bool recursive = true,
+  }) => watchAllBooks().map(
+    (items) => items.where((book) {
+      final normalized = book.filePath.replaceAll('\\', '/');
+      final dir = directoryPath.replaceAll('\\', '/');
+      if (recursive) {
+        return normalized.startsWith('$dir/');
+      }
+      final separatorIndex = normalized.lastIndexOf('/');
+      final parent = separatorIndex <= 0
+          ? normalized
+          : normalized.substring(0, separatorIndex);
+      return parent == dir;
+    }).toList(),
+  );
 }

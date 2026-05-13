@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/database/app_database.dart';
 import '../services/mobi_converter_service.dart';
-import 'txt_reader.dart';
+import 'html_reader.dart';
 
 /// Renders MOBI/AZW files by first converting them to HTML via the Android
 /// platform channel, then displaying the result as plain text.
@@ -64,8 +64,8 @@ class _MobiReaderState extends State<MobiReader> {
       );
     }
 
-    // Reuse TxtReader-style rendering by substituting the file path
-    // with the converted HTML file.
+    // Reuse HTML rendering by substituting the file path with the converted
+    // HTML file.
     final htmlBook = Book(
       id: widget.book.id,
       title: widget.book.title,
@@ -77,6 +77,8 @@ class _MobiReaderState extends State<MobiReader> {
       lastOpenedAt: widget.book.lastOpenedAt,
       totalPages: widget.book.totalPages,
       currentPosition: widget.book.currentPosition,
+      coverSource: widget.book.coverSource,
+      lastReadProgress: widget.book.lastReadProgress,
       isFavorite: widget.book.isFavorite,
       isRead: widget.book.isRead,
       isInReadList: widget.book.isInReadList,
@@ -85,6 +87,6 @@ class _MobiReaderState extends State<MobiReader> {
       genre: widget.book.genre,
     );
 
-    return TxtReader(book: htmlBook);
+    return HtmlReader(book: htmlBook);
   }
 }

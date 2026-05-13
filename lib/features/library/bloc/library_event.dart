@@ -53,6 +53,12 @@ class LibraryBookFavoriteToggled extends LibraryEvent {
   final bool isFavorite;
 }
 
+class LibraryBookReadToggled extends LibraryEvent {
+  LibraryBookReadToggled(this.bookId, {required this.isRead});
+  final int bookId;
+  final bool isRead;
+}
+
 class LibraryBookDeleted extends LibraryEvent {
   LibraryBookDeleted(this.bookId);
   final int bookId;

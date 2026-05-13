@@ -32,17 +32,22 @@ class ReaderCubit extends Cubit<ReaderState> {
     this._bookmarkRepo,
     this._bookSettingsRepo,
     this._readingSessionRepo,
+    this._highlightRepo,
   ) : super(const ReaderState());
 
   final BookRepository _bookRepo;
   final BookmarkRepository _bookmarkRepo;
   final BookSettingsRepository _bookSettingsRepo;
   final ReadingSessionRepository _readingSessionRepo;
+  final HighlightRepository _highlightRepo;
 
   StreamSubscription<dynamic>? _bookmarksSub;
   StreamSubscription<dynamic>? _settingsSub;
+  StreamSubscription<dynamic>? _highlightsSub;
   Timer? _positionDebounce;
+  Timer? _sleepTimer;
   String _pendingPosition = '';
+  double _maxProgress = 0;
 
   Future<void> open(Book book, {ReaderDefaults? defaults}) async {
     emit(state.copyWith(book: book, isLoading: true));
@@ -95,18 +100,30 @@ class ReaderCubit extends Cubit<ReaderState> {
 
     await _settingsSub?.cancel();
     _settingsSub = _bookSettingsRepo.watchSettings(book.id).listen((s) {
-      if (s != null) emit(state.copyWith(settings: s));
+      if (s != null) {
+        _resetSleepTimer(s.sleepTimerMinutes);
+        emit(state.copyWith(settings: s));
+      }
     });
+
+    await _highlightsSub?.cancel();
+    _highlightsSub = _highlightRepo
+        .watchHighlightsForBook(book.id)
+        .listen((items) => emit(state.copyWith(highlights: items)));
   }
 
-  void updatePosition(String position) {
+  void updatePosition(String position, {double? progress}) {
     _pendingPosition = position;
+    _maxProgress = progress != null
+        ? (progress > _maxProgress ? progress : _maxProgress)
+        : _maxProgress;
     final book = state.book;
     if (book != null && book.currentPosition != position) {
       emit(
         state.copyWith(
           book: book.copyWith(
             currentPosition: position,
+            lastReadProgress: progress ?? book.lastReadProgress,
             lastOpenedAt: Value(DateTime.now()),
           ),
         ),
@@ -116,7 +133,11 @@ class ReaderCubit extends Cubit<ReaderState> {
     _positionDebounce = Timer(const Duration(seconds: 2), () {
       final activeBook = state.book;
       if (activeBook != null) {
-        _bookRepo.updatePosition(activeBook.id, _pendingPosition);
+        _bookRepo.updatePosition(
+          activeBook.id,
+          _pendingPosition,
+          progress: progress,
+        );
       }
     });
   }
@@ -140,27 +161,62 @@ class ReaderCubit extends Cubit<ReaderState> {
     await _bookSettingsRepo.upsertSettings(settings);
   }
 
+  Future<void> addHighlight({
+    required String cfiRange,
+    required String selectedText,
+    String color = 'yellow',
+  }) async {
+    final book = state.book;
+    if (book == null) return;
+    await _highlightRepo.addHighlight(
+      book.id,
+      cfiRange,
+      selectedText,
+      color: color,
+    );
+  }
+
+  Future<void> deleteHighlight(int id) async {
+    await _highlightRepo.deleteHighlight(id);
+  }
+
   void toggleUi() {
     emit(state.copyWith(showUi: !state.showUi));
+  }
+
+  void _resetSleepTimer(int minutes) {
+    _sleepTimer?.cancel();
+    if (minutes <= 0) return;
+    _sleepTimer = Timer(Duration(minutes: minutes), () {
+      emit(state.copyWith(closeRequested: true, showUi: true));
+    });
   }
 
   @override
   Future<void> close() async {
     _positionDebounce?.cancel();
+    _sleepTimer?.cancel();
 
     // Flush pending position
     final book = state.book;
     if (book != null && _pendingPosition.isNotEmpty) {
-      await _bookRepo.updatePosition(book.id, _pendingPosition);
+      await _bookRepo.updatePosition(
+        book.id,
+        _pendingPosition,
+        progress: _maxProgress > 0 ? _maxProgress : null,
+      );
     }
 
     // End reading session
     if (state.sessionId != null) {
-      await _readingSessionRepo.endSession(state.sessionId!, 0);
+      final totalPages = book?.totalPages ?? 0;
+      final pagesRead = totalPages > 0 ? (_maxProgress * totalPages).round() : 0;
+      await _readingSessionRepo.endSession(state.sessionId!, pagesRead);
     }
 
     await _bookmarksSub?.cancel();
     await _settingsSub?.cancel();
+    await _highlightsSub?.cancel();
 
     emit(const ReaderState());
     return super.close();

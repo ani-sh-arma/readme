@@ -26,6 +26,14 @@ class ShelvesDao extends DatabaseAccessor<AppDatabase> with _$ShelvesDaoMixin {
   Future<int> insertShelf(ShelvesCompanion shelf) =>
       into(shelves).insertOnConflictUpdate(shelf);
 
+  Future<void> updateScanRecursive(int id, bool recursive) =>
+      (update(shelves)..where((s) => s.id.equals(id))).write(
+        ShelvesCompanion(
+          scanRecursive: Value(recursive),
+          lastScannedAt: Value(DateTime.now()),
+        ),
+      );
+
   Future<int> deleteShelf(int id) =>
       (delete(shelves)..where((s) => s.id.equals(id))).go();
 

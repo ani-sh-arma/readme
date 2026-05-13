@@ -18,6 +18,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<LibraryFavoritesFilterToggled>(_onFavoritesFilterToggled);
     on<LibrarySearchChanged>(_onSearchChanged);
     on<LibraryBookFavoriteToggled>(_onFavoriteToggled);
+    on<LibraryBookReadToggled>(_onReadToggled);
     on<LibraryBookDeleted>(_onBookDeleted);
   }
 
@@ -127,6 +128,14 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) async {
     await _bookRepo.markFavorite(event.bookId, isFavorite: event.isFavorite);
+  }
+
+  Future<void> _onReadToggled(
+    LibraryBookReadToggled event,
+    Emitter<LibraryState> emit,
+  ) async {
+    await _bookRepo.markRead(event.bookId, isRead: event.isRead);
+    await _bookRepo.markInReadList(event.bookId, inReadList: event.isRead);
   }
 
   Future<void> _onBookDeleted(

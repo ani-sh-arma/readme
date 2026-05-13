@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfx/pdfx.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/reader_style.dart';
 import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
@@ -42,9 +42,6 @@ class _PdfReaderState extends State<PdfReader> {
     0, 0, -1, 0, 255, //
     0, 0, 0, 1, 0, //
   ];
-
-  bool _isDarkPreset(ReaderThemePreset p) =>
-      p == ReaderThemePreset.dark || p == ReaderThemePreset.amoled;
 
   PhotoViewGalleryPageOptions _buildPage(
     BuildContext context,
@@ -96,21 +93,21 @@ class _PdfReaderState extends State<PdfReader> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ReaderCubit>().state;
-    final settings = state.settings;
-
-    final preset = ReaderThemePreset.values.firstWhere(
-      (p) => p.label == (settings?.theme ?? 'Light'),
-      orElse: () => ReaderThemePreset.light,
-    );
-    final invert = _isDarkPreset(preset);
-    final bg = invert ? Colors.black : Colors.white;
+    final preset = state.settings?.theme ?? 'Light';
+    final style = resolveReaderStyle(state.settings);
+    final invert = preset == 'Dark' || preset == 'Amoled';
+    final bg = invert ? Colors.black : style.background;
 
     Widget pdf = PdfView(
       controller: _controller!,
       scrollDirection: Axis.horizontal,
       backgroundDecoration: BoxDecoration(color: bg),
       onPageChanged: (page) {
-        context.read<ReaderCubit>().updatePosition(page.toString());
+        final total = widget.book.totalPages > 0 ? widget.book.totalPages : 1;
+        context.read<ReaderCubit>().updatePosition(
+          page.toString(),
+          progress: (page / total).clamp(0.0, 1.0),
+        );
       },
       builders: PdfViewBuilders<DefaultBuilderOptions>(
         options: const DefaultBuilderOptions(),

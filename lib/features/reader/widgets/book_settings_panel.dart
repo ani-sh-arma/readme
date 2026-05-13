@@ -6,6 +6,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/database/app_database.dart';
+import '../../settings/bloc/settings_cubit.dart';
 import '../bloc/reader_bloc.dart';
 import '../bloc/reader_cubit.dart';
 
@@ -40,6 +41,14 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _resetToGlobalDefaults(context, cubit, settings),
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('Reset to app defaults'),
+                ),
+              ),
               // Theme presets
               Text('Theme', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
@@ -150,10 +159,145 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
                   ),
                 ],
               ),
+              Row(
+                children: [
+                  const Icon(Icons.auto_mode_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Auto-scroll'),
+                  const Spacer(),
+                  Switch(
+                    value: settings.autoScrollEnabled,
+                    onChanged: (value) => cubit.updateSettings(
+                      BookSettingsCompanion(
+                        bookId: Value(settings.bookId),
+                        autoScrollEnabled: Value(value),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.speed_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Speed'),
+                  Expanded(
+                    child: Slider(
+                      value: settings.autoScrollSpeed,
+                      min: 8,
+                      max: 72,
+                      divisions: 16,
+                      label: settings.autoScrollSpeed.toStringAsFixed(0),
+                      onChanged: settings.autoScrollEnabled
+                          ? (v) => cubit.updateSettings(
+                              BookSettingsCompanion(
+                                bookId: Value(settings.bookId),
+                                autoScrollSpeed: Value(v),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.timer_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Sleep timer'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<int>(
+                      value: settings.sleepTimerMinutes,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 0, child: Text('Off')),
+                        DropdownMenuItem(value: 10, child: Text('10 min')),
+                        DropdownMenuItem(value: 20, child: Text('20 min')),
+                        DropdownMenuItem(value: 30, child: Text('30 min')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.updateSettings(
+                            BookSettingsCompanion(
+                              bookId: Value(settings.bookId),
+                              sleepTimerMinutes: Value(value),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.compare_arrows_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Direction'),
+                  const SizedBox(width: 8),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'ltr', label: Text('LTR')),
+                      ButtonSegment(value: 'rtl', label: Text('RTL')),
+                    ],
+                    selected: {settings.readingDirection},
+                    onSelectionChanged: (selection) => cubit.updateSettings(
+                      BookSettingsCompanion(
+                        bookId: Value(settings.bookId),
+                        readingDirection: Value(selection.first),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.chrome_reader_mode_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Double page'),
+                  const Spacer(),
+                  Switch(
+                    value: settings.doublePageSpread,
+                    onChanged: (value) => cubit.updateSettings(
+                      BookSettingsCompanion(
+                        bookId: Value(settings.bookId),
+                        doublePageSpread: Value(value),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _resetToGlobalDefaults(
+    BuildContext context,
+    ReaderCubit cubit,
+    BookSetting settings,
+  ) {
+    final global = context.read<SettingsCubit>().state;
+    cubit.updateSettings(
+      BookSettingsCompanion(
+        bookId: Value(settings.bookId),
+        fontSize: Value(global.defaultFontSize),
+        fontFamily: Value(global.defaultFontFamily),
+        lineHeight: Value(global.defaultLineHeight),
+        scrollMode: Value(global.defaultScrollMode),
+        theme: Value(global.defaultReaderTheme),
+        autoScrollEnabled: const Value(false),
+        autoScrollSpeed: const Value(24),
+        sleepTimerMinutes: const Value(0),
+        readingDirection: const Value('ltr'),
+        doublePageSpread: const Value(false),
+        customBg: const Value.absent(),
+        customFg: const Value.absent(),
+        customAccent: const Value.absent(),
+      ),
     );
   }
 }
@@ -254,13 +398,13 @@ class _ThemeRow extends StatelessWidget {
                   bookId: Value(settings.bookId),
                   theme: const Value('Custom'),
                   customBg: Value(
-                    '#${bg.value.toRadixString(16).padLeft(8, '0')}',
+                    '#${bg.toARGB32().toRadixString(16).padLeft(8, '0')}',
                   ),
                   customFg: Value(
-                    '#${fg.value.toRadixString(16).padLeft(8, '0')}',
+                    '#${fg.toARGB32().toRadixString(16).padLeft(8, '0')}',
                   ),
                   customAccent: Value(
-                    '#${accent.value.toRadixString(16).padLeft(8, '0')}',
+                    '#${accent.toARGB32().toRadixString(16).padLeft(8, '0')}',
                   ),
                 ),
               );

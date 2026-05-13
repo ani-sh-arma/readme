@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/database/app_database.dart';
+import '../../../data/repositories/bookmark_repository.dart';
 
 class BookGridItem extends StatelessWidget {
   const BookGridItem({
@@ -53,6 +55,8 @@ class BookGridItem extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  _BookMeta(book: book),
                 ],
               ),
             ),
@@ -94,8 +98,8 @@ class BookListItem extends StatelessWidget {
       ),
       title: Text(book.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        book.author,
-        maxLines: 1,
+        '${book.author}${book.lastReadProgress > 0 ? ' • ${_progressLabel(book.lastReadProgress)}' : ''}',
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
@@ -111,6 +115,9 @@ class BookListItem extends StatelessWidget {
           ),
     );
   }
+
+  String _progressLabel(double progress) =>
+      '${(progress * 100).round().clamp(0, 100)}%';
 }
 
 class _CoverImage extends StatelessWidget {
@@ -129,6 +136,47 @@ class _CoverImage extends StatelessWidget {
       );
     }
     return _Placeholder(book: book);
+  }
+}
+
+class _BookMeta extends StatelessWidget {
+  const _BookMeta({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = book.lastReadProgress.clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (progress > 0)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(value: progress, minHeight: 4),
+          ),
+        const SizedBox(height: 4),
+        FutureBuilder<Duration>(
+          future: context.read<ReadingSessionRepository>().totalReadingTime(
+            book.id,
+          ),
+          builder: (context, snapshot) {
+            final duration = snapshot.data ?? Duration.zero;
+            final minutes = duration.inMinutes;
+            final label = minutes <= 0 ? 'Not started' : '$minutes min read';
+            final suffix = progress > 0
+                ? ' • ${(progress * 100).round().clamp(0, 100)}%'
+                : '';
+            return Text(
+              '$label$suffix',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            );
+          },
+        ),
+      ],
+    );
   }
 }
 

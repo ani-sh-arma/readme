@@ -42,8 +42,10 @@ class ReaderState extends Equatable {
     this.book,
     this.settings,
     this.bookmarks = const [],
+    this.highlights = const [],
     this.isLoading = true,
     this.showUi = true,
+    this.closeRequested = false,
     this.error,
     this.sessionId,
   });
@@ -51,8 +53,10 @@ class ReaderState extends Equatable {
   final Book? book;
   final BookSetting? settings;
   final List<Bookmark> bookmarks;
+  final List<Highlight> highlights;
   final bool isLoading;
   final bool showUi;
+  final bool closeRequested;
   final String? error;
   final int? sessionId;
 
@@ -60,8 +64,10 @@ class ReaderState extends Equatable {
     Book? book,
     BookSetting? settings,
     List<Bookmark>? bookmarks,
+    List<Highlight>? highlights,
     bool? isLoading,
     bool? showUi,
+    bool? closeRequested,
     String? error,
     int? sessionId,
     bool clearError = false,
@@ -70,8 +76,10 @@ class ReaderState extends Equatable {
       book: book ?? this.book,
       settings: settings ?? this.settings,
       bookmarks: bookmarks ?? this.bookmarks,
+      highlights: highlights ?? this.highlights,
       isLoading: isLoading ?? this.isLoading,
       showUi: showUi ?? this.showUi,
+      closeRequested: closeRequested ?? this.closeRequested,
       error: clearError ? null : (error ?? this.error),
       sessionId: sessionId ?? this.sessionId,
     );
@@ -82,8 +90,10 @@ class ReaderState extends Equatable {
     book,
     settings,
     bookmarks,
+    highlights,
     isLoading,
     showUi,
+    closeRequested,
     error,
     sessionId,
   ];

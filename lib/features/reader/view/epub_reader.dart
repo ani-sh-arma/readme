@@ -4,7 +4,7 @@ import 'package:epub_view/epub_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/reader_style.dart';
 import '../../../data/database/app_database.dart';
 import '../bloc/reader_cubit.dart';
 
@@ -22,6 +22,7 @@ class _EpubReaderState extends State<EpubReader> {
   String? _initError;
   bool _restoreSavedPositionOnLoad = true;
   bool _didAttemptInitialRestore = false;
+  VoidCallback? _currentValueListener;
 
   @override
   void initState() {
@@ -39,6 +40,17 @@ class _EpubReaderState extends State<EpubReader> {
     }
     try {
       _controller = EpubController(document: EpubDocument.openFile(file));
+      _currentValueListener = () {
+        final value = _controller?.currentValue;
+        if (value == null) return;
+        final cfi = _controller?.generateEpubCfi();
+        if (cfi == null || cfi.isEmpty) return;
+        final total = (_controller?.tableOfContents().length ?? 0).clamp(1, 999999);
+        final progress = ((value.chapterNumber + (value.progress / 100)) / total)
+            .clamp(0.0, 1.0);
+        context.read<ReaderCubit>().updatePosition(cfi, progress: progress);
+      };
+      _controller!.currentValueListenable.addListener(_currentValueListener!);
     } catch (e) {
       _initError = e.toString();
     }
@@ -46,6 +58,9 @@ class _EpubReaderState extends State<EpubReader> {
 
   @override
   void dispose() {
+    if (_controller != null && _currentValueListener != null) {
+      _controller!.currentValueListenable.removeListener(_currentValueListener!);
+    }
     _controller?.dispose();
     super.dispose();
   }
@@ -86,32 +101,19 @@ class _EpubReaderState extends State<EpubReader> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ReaderCubit>().state;
-    final settings = state.settings;
-
-    final preset = ReaderThemePreset.values.firstWhere(
-      (p) => p.label == (settings?.theme ?? 'Light'),
-      orElse: () => ReaderThemePreset.light,
-    );
-    Color bg = preset.background;
-    Color fg = preset.foreground;
-    if (preset == ReaderThemePreset.custom &&
-        settings?.customBg != null &&
-        settings?.customFg != null) {
-      bg = Color(int.parse(settings!.customBg!.replaceFirst('#', '0xFF')));
-      fg = Color(int.parse(settings.customFg!.replaceFirst('#', '0xFF')));
-    }
+    final style = resolveReaderStyle(state.settings);
 
     if (_initError != null || _controller == null) {
       return _ErrorView(
         message: _initError ?? 'Failed to load EPUB',
         onRetry: _retryFromStart,
-        bg: bg,
-        fg: fg,
+        bg: style.background,
+        fg: style.foreground,
       );
     }
 
     return Container(
-      color: bg,
+      color: style.background,
       child: EpubView(
         controller: _controller!,
         onDocumentLoaded: (_) => _restoreSavedPositionIfNeeded(),
@@ -130,10 +132,10 @@ class _EpubReaderState extends State<EpubReader> {
         builders: EpubViewBuilders<DefaultBuilderOptions>(
           options: DefaultBuilderOptions(
             textStyle: TextStyle(
-              fontSize: settings?.fontSize ?? 16.0,
-              height: settings?.lineHeight ?? 1.5,
-              fontFamily: _fontFamily(settings?.fontFamily),
-              color: fg,
+              fontSize: style.fontSize,
+              height: style.lineHeight,
+              fontFamily: style.fontFamily,
+              color: style.foreground,
             ),
           ),
         ),
@@ -141,10 +143,6 @@ class _EpubReaderState extends State<EpubReader> {
     );
   }
 
-  String? _fontFamily(String? family) {
-    if (family == null || family == 'Default') return null;
-    return family;
-  }
 }
 
 class _ErrorView extends StatelessWidget {

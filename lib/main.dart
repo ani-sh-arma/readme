@@ -33,6 +33,7 @@ class ReadMeApp extends StatelessWidget {
     final bookmarkRepo = BookmarkRepository(db);
     final bookSettingsRepo = BookSettingsRepository(db);
     final readingSessionRepo = ReadingSessionRepository(db);
+    final highlightRepo = HighlightRepository(db);
 
     return MultiRepositoryProvider(
       providers: [
@@ -41,6 +42,7 @@ class ReadMeApp extends StatelessWidget {
         RepositoryProvider.value(value: bookmarkRepo),
         RepositoryProvider.value(value: bookSettingsRepo),
         RepositoryProvider.value(value: readingSessionRepo),
+        RepositoryProvider.value(value: highlightRepo),
       ],
       child: MultiBlocProvider(
         providers: [

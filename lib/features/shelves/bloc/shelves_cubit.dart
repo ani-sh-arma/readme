@@ -51,6 +51,18 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     }
   }
 
+  Future<void> updateScanRecursive(Shelf shelf, bool recursive) async {
+    await _shelfRepo.updateScanRecursive(shelf.id, recursive);
+    await _shelfRepo.registerDirectoryTree(
+      Directory(shelf.dirPath),
+      scanRecursive: recursive,
+    );
+    await _bookRepo.scanDirectory(
+      Directory(shelf.dirPath),
+      recursive: recursive,
+    );
+  }
+
   @override
   Future<void> close() {
     _sub?.cancel();

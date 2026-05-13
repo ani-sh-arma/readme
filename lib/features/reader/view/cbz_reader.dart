@@ -86,6 +86,8 @@ class _CbzReaderState extends State<CbzReader> {
       return const Center(child: Text('No pages found in archive.'));
     }
 
+    final settings = context.watch<ReaderCubit>().state.settings;
+    _mangaMode = settings?.readingDirection == 'rtl';
     return Column(
       children: [
         Expanded(
@@ -107,7 +109,10 @@ class _CbzReaderState extends State<CbzReader> {
             pageController: _pageController,
             onPageChanged: (page) {
               setState(() => _currentPage = page);
-              context.read<ReaderCubit>().updatePosition(page.toString());
+              context.read<ReaderCubit>().updatePosition(
+                page.toString(),
+                progress: ((page + 1) / _pages.length).clamp(0.0, 1.0),
+              );
             },
             backgroundDecoration: const BoxDecoration(color: Colors.black),
           ),
@@ -129,7 +134,7 @@ class _CbzReaderState extends State<CbzReader> {
                   Switch(
                     value: _mangaMode,
                     onChanged: (v) => setState(() => _mangaMode = v),
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                   ),
                 ],
               ),

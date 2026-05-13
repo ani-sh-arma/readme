@@ -104,6 +104,9 @@ class _CbrReaderState extends State<CbrReader> {
       );
     }
 
+    final settings = context.watch<ReaderCubit>().state.settings;
+    _mangaMode = settings?.readingDirection == 'rtl';
+
     return Column(
       children: [
         Expanded(
@@ -123,7 +126,10 @@ class _CbrReaderState extends State<CbrReader> {
             pageController: _pageController,
             onPageChanged: (page) {
               setState(() => _currentPage = page);
-              context.read<ReaderCubit>().updatePosition(page.toString());
+              context.read<ReaderCubit>().updatePosition(
+                page.toString(),
+                progress: ((page + 1) / _imagePaths.length).clamp(0.0, 1.0),
+              );
             },
             backgroundDecoration: const BoxDecoration(color: Colors.black),
           ),
@@ -144,7 +150,7 @@ class _CbrReaderState extends State<CbrReader> {
                   Switch(
                     value: _mangaMode,
                     onChanged: (v) => setState(() => _mangaMode = v),
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                   ),
                 ],
               ),
