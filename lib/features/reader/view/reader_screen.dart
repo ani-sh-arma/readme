@@ -9,13 +9,8 @@ import '../../settings/bloc/settings_cubit.dart';
 import '../bloc/reader_bloc.dart';
 import '../bloc/reader_cubit.dart';
 import '../widgets/book_settings_panel.dart';
-import 'cbr_reader.dart';
-import 'cbz_reader.dart';
 import 'epub_reader.dart';
-import 'html_reader.dart';
-import 'mobi_reader.dart';
 import 'pdf_reader.dart';
-import 'txt_reader.dart';
 
 class ReaderScreen extends StatelessWidget {
   const ReaderScreen({super.key, required this.book});
@@ -25,13 +20,20 @@ class ReaderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.read<SettingsCubit>().state;
-    final defaults = ReaderDefaults(
-      fontSize: settings.defaultFontSize,
-      fontFamily: settings.defaultFontFamily,
-      lineHeight: settings.defaultLineHeight,
-      scrollMode: settings.defaultScrollMode,
-      theme: settings.defaultReaderTheme,
-    );
+    final defaults = switch (book.format) {
+      'epub' => ReaderDefaults(
+        fontSize: settings.epubDefaults.fontSize,
+        fontFamily: settings.epubDefaults.fontFamily,
+        lineHeight: settings.epubDefaults.lineHeight,
+        scrollMode: settings.epubDefaults.scrollMode,
+        theme: settings.epubDefaults.theme,
+      ),
+      'pdf' => ReaderDefaults(
+        scrollMode: settings.pdfDefaults.scrollMode,
+        theme: settings.pdfDefaults.theme,
+      ),
+      _ => const ReaderDefaults(scrollMode: 'paged', theme: 'Light'),
+    };
     return BlocProvider(
       create: (ctx) => ReaderCubit(
         ctx.read<BookRepository>(),
@@ -111,19 +113,6 @@ class _ReaderViewState extends State<_ReaderView> {
         return EpubReader(book: widget.book);
       case 'pdf':
         return PdfReader(book: widget.book);
-      case 'txt':
-        return TxtReader(book: widget.book);
-      case 'html':
-      case 'htm':
-        return HtmlReader(book: widget.book);
-      case 'cbz':
-        return CbzReader(book: widget.book);
-      case 'cbr':
-        return CbrReader(book: widget.book);
-      case 'mobi':
-      case 'azw':
-      case 'azw3':
-        return MobiReader(book: widget.book);
       default:
         return Center(
           child: Padding(

@@ -16,87 +16,169 @@ class SettingsScreen extends StatelessWidget {
         builder: (context, state) {
           final cubit = context.read<SettingsCubit>();
           return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              _SectionHeader('Appearance'),
-              ListTile(
-                title: const Text('App theme'),
-                subtitle: Text(_themeModeLabel(state.themeMode)),
-                leading: const Icon(Icons.brightness_6_outlined),
-                onTap: () => _showThemePicker(context, cubit, state),
+              _SectionCard(
+                title: 'Appearance',
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('App theme'),
+                    subtitle: Text(_themeModeLabel(state.themeMode)),
+                    leading: const Icon(Icons.brightness_6_outlined),
+                    onTap: () => _showThemePicker(context, cubit, state),
+                  ),
+                ],
               ),
-              const Divider(),
-              _SectionHeader('Reader defaults'),
-              ListTile(
-                title: const Text('Font size'),
-                subtitle: Slider(
-                  value: state.defaultFontSize,
-                  min: AppConstants.minFontSize,
-                  max: AppConstants.maxFontSize,
-                  divisions: 26,
-                  label: state.defaultFontSize.toStringAsFixed(0),
-                  onChanged: (v) => cubit.setDefaultFontSize(v),
-                ),
-                leading: const Icon(Icons.format_size),
-              ),
-              ListTile(
-                title: const Text('Line height'),
-                subtitle: Slider(
-                  value: state.defaultLineHeight,
-                  min: AppConstants.minLineHeight,
-                  max: AppConstants.maxLineHeight,
-                  divisions: 20,
-                  label: state.defaultLineHeight.toStringAsFixed(1),
-                  onChanged: (v) => cubit.setDefaultLineHeight(v),
-                ),
-                leading: const Icon(Icons.format_line_spacing),
-              ),
-              ListTile(
-                title: const Text('Font family'),
-                leading: const Icon(Icons.font_download_outlined),
-                trailing: DropdownButton<String>(
-                  value: state.defaultFontFamily,
-                  items: AppConstants.readerFonts
-                      .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) cubit.setDefaultFontFamily(v);
-                  },
-                ),
-              ),
-              ListTile(
-                title: const Text('Scroll mode'),
-                leading: const Icon(Icons.swap_vert),
-                trailing: DropdownButton<String>(
-                  value: state.defaultScrollMode,
-                  items: const [
-                    DropdownMenuItem(value: 'paged', child: Text('Paged')),
-                    DropdownMenuItem(
-                      value: 'continuous',
-                      child: Text('Continuous'),
+              _SectionCard(
+                title: 'EPUB Defaults',
+                subtitle:
+                    'Typography and reading defaults for reflowable EPUB books.',
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Font size'),
+                    subtitle: Slider(
+                      value: state.epubDefaults.fontSize,
+                      min: AppConstants.minFontSize,
+                      max: AppConstants.maxFontSize,
+                      divisions: 26,
+                      label: state.epubDefaults.fontSize.toStringAsFixed(0),
+                      onChanged: cubit.setEpubFontSize,
                     ),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) cubit.setScrollMode(v);
-                  },
-                ),
-              ),
-              ListTile(
-                title: const Text('Reader theme'),
-                leading: const Icon(Icons.color_lens_outlined),
-                trailing: DropdownButton<String>(
-                  value: state.defaultReaderTheme,
-                  items: ReaderThemePreset.values
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: p.label,
-                          child: Text(p.label),
+                    leading: const Icon(Icons.format_size),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Line height'),
+                    subtitle: Slider(
+                      value: state.epubDefaults.lineHeight,
+                      min: AppConstants.minLineHeight,
+                      max: AppConstants.maxLineHeight,
+                      divisions: 20,
+                      label: state.epubDefaults.lineHeight.toStringAsFixed(1),
+                      onChanged: cubit.setEpubLineHeight,
+                    ),
+                    leading: const Icon(Icons.format_line_spacing),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Font family'),
+                    leading: const Icon(Icons.font_download_outlined),
+                    trailing: DropdownButton<String>(
+                      value: state.epubDefaults.fontFamily,
+                      items: AppConstants.readerFonts
+                          .map(
+                            (font) => DropdownMenuItem(
+                              value: font,
+                              child: Text(font),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.setEpubFontFamily(value);
+                        }
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Scroll mode'),
+                    leading: const Icon(Icons.swap_vert),
+                    trailing: DropdownButton<String>(
+                      value: state.epubDefaults.scrollMode,
+                      items: const [
+                        DropdownMenuItem(value: 'paged', child: Text('Paged')),
+                        DropdownMenuItem(
+                          value: 'continuous',
+                          child: Text('Continuous'),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) cubit.setReaderTheme(v);
-                  },
-                ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.setEpubScrollMode(value);
+                        }
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Theme'),
+                    leading: const Icon(Icons.color_lens_outlined),
+                    trailing: DropdownButton<String>(
+                      value: state.epubDefaults.theme,
+                      items: ReaderThemePreset.values
+                          .map(
+                            (preset) => DropdownMenuItem(
+                              value: preset.label,
+                              child: Text(preset.label),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.setEpubReaderTheme(value);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              _SectionCard(
+                title: 'PDF Defaults',
+                subtitle:
+                    'Safe viewing defaults for fixed-layout PDF documents.',
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Scroll mode'),
+                    subtitle: const Text(
+                      'Paged uses horizontal page turns. Continuous uses a vertical flow.',
+                    ),
+                    leading: const Icon(Icons.swap_vert),
+                    trailing: DropdownButton<String>(
+                      value: state.pdfDefaults.scrollMode,
+                      items: const [
+                        DropdownMenuItem(value: 'paged', child: Text('Paged')),
+                        DropdownMenuItem(
+                          value: 'continuous',
+                          child: Text('Continuous'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.setPdfScrollMode(value);
+                        }
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Theme'),
+                    subtitle: const Text(
+                      'Dark themes invert page colors for more comfortable night reading.',
+                    ),
+                    leading: const Icon(Icons.picture_as_pdf_outlined),
+                    trailing: DropdownButton<String>(
+                      value: state.pdfDefaults.theme,
+                      items: ReaderThemePreset.values
+                          .where((preset) => preset != ReaderThemePreset.custom)
+                          .map(
+                            (preset) => DropdownMenuItem(
+                              value: preset.label,
+                              child: Text(preset.label),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          cubit.setPdfReaderTheme(value);
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           );
@@ -131,9 +213,9 @@ class SettingsScreen extends StatelessWidget {
                 title: Text(_themeModeLabel(mode)),
                 value: mode,
                 groupValue: state.themeMode,
-                onChanged: (v) {
-                  if (v != null) {
-                    cubit.setThemeMode(v);
+                onChanged: (value) {
+                  if (value != null) {
+                    cubit.setThemeMode(value);
                     Navigator.pop(ctx);
                   }
                 },
@@ -145,18 +227,40 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.children,
+    this.subtitle,
+  });
+
   final String title;
+  final String? subtitle;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: theme.textTheme.titleMedium),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            ...children,
+          ],
         ),
       ),
     );

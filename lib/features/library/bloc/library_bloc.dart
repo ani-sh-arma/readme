@@ -1,13 +1,18 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/book_repository.dart';
+import '../../../data/repositories/shelf_repository.dart';
 import 'library_event.dart';
 import 'library_state.dart';
 
 class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
-  LibraryBloc(this._bookRepo) : super(const LibraryState()) {
+  LibraryBloc(this._bookRepo, this._shelfRepo) : super(const LibraryState()) {
     on<LibraryStarted>(_onStarted);
+    on<LibrarySyncRequested>(_onSyncRequested);
     on<LibraryBooksUpdated>(_onBooksUpdated);
     on<LibraryScanRequested>(_onScanRequested);
     on<LibraryScanProgressUpdated>(_onScanProgressUpdated);
@@ -23,17 +28,22 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   }
 
   final BookRepository _bookRepo;
+  final ShelfRepository _shelfRepo;
+  StreamSubscription<List<Book>>? _booksSub;
 
   Future<void> _onStarted(
     LibraryStarted event,
     Emitter<LibraryState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true));
-    await emit.forEach<List<Book>>(
-      _bookRepo.watchAllBooks(),
-      onData: (books) => state.copyWith(books: books, isLoading: false),
-      onError: (e, _) => state.copyWith(error: e.toString(), isLoading: false),
+    emit(state.copyWith(isLoading: true, clearError: true));
+    await _booksSub?.cancel();
+    _booksSub = _bookRepo.watchAllBooks().listen(
+      (books) => add(LibraryBooksUpdated(books)),
+      onError: (Object error, StackTrace stackTrace) {
+        addError(error, stackTrace);
+      },
     );
+    add(LibrarySyncRequested());
   }
 
   void _onBooksUpdated(LibraryBooksUpdated event, Emitter<LibraryState> emit) {
@@ -48,10 +58,69 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _bookRepo.scanDirectory(
         event.directory,
-        onProgress: (path) =>
-            add(LibraryScanProgressUpdated(path)), // update UI progress
+        onProgress: (path) => add(LibraryScanProgressUpdated(path)),
       );
-      emit(state.copyWith(isLoading: false, clearScanProgress: true));
+      emit(
+        state.copyWith(
+          isLoading: false,
+          clearScanProgress: true,
+          lastSyncedAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          error: e.toString(),
+          isLoading: false,
+          clearScanProgress: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onSyncRequested(
+    LibrarySyncRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+    try {
+      final roots = await _shelfRepo.getRootShelves();
+      if (roots.isEmpty) {
+        emit(
+          state.copyWith(
+            isLoading: false,
+            clearScanProgress: true,
+            lastSyncedAt: DateTime.now(),
+          ),
+        );
+        return;
+      }
+
+      for (final root in roots) {
+        final directory = Directory(root.dirPath);
+        emit(state.copyWith(scanProgress: root.dirPath));
+        if (!directory.existsSync()) {
+          await _shelfRepo.removeShelf(root.id);
+          continue;
+        }
+        await _shelfRepo.registerDirectoryTree(
+          directory,
+          scanRecursive: root.scanRecursive,
+        );
+        await _bookRepo.scanDirectory(
+          directory,
+          recursive: root.scanRecursive,
+          onProgress: (path) => add(LibraryScanProgressUpdated(path)),
+        );
+      }
+
+      emit(
+        state.copyWith(
+          isLoading: false,
+          clearScanProgress: true,
+          lastSyncedAt: DateTime.now(),
+        ),
+      );
     } catch (e) {
       emit(
         state.copyWith(
@@ -146,7 +215,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
+    await _booksSub?.cancel();
     return super.close();
   }
 }

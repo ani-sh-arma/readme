@@ -1,14 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
 import 'package:epubx/epubx.dart' as epubx;
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
-
-import '../../features/reader/services/cbr_extractor_service.dart';
 
 class BookMetadataSnapshot {
   const BookMetadataSnapshot({
@@ -36,10 +33,6 @@ class BookMediaService {
     return switch (format) {
       'epub' => _extractEpub(file, fallbackTitle, fallbackAuthor),
       'pdf' => _extractPdf(file, fallbackTitle, fallbackAuthor),
-      'cbz' => _extractCbz(file, fallbackTitle, fallbackAuthor),
-      'cbr' => _extractCbr(file, fallbackTitle, fallbackAuthor),
-      'txt' || 'html' || 'htm' || 'mobi' || 'azw' || 'azw3' =>
-        _fallback(file, fallbackTitle, fallbackAuthor, format),
       _ => _fallback(file, fallbackTitle, fallbackAuthor, format),
     };
   }
@@ -131,65 +124,6 @@ class BookMediaService {
     );
   }
 
-  Future<BookMetadataSnapshot> _extractCbz(
-    File file,
-    String fallbackTitle,
-    String fallbackAuthor,
-  ) async {
-    final bytes = await file.readAsBytes();
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final pages = archive.files
-        .where((entry) => entry.isFile && _isImage(entry.name))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-
-    String? coverPath;
-    if (pages.isNotEmpty) {
-      final content = pages.first.content;
-      if (content is List<int>) {
-        coverPath = await _writeBytesCover(
-          await _coverDirectory(),
-          file.path,
-          content,
-          suffix: 'cbz_first_page',
-        );
-      }
-    }
-
-    return BookMetadataSnapshot(
-      title: fallbackTitle,
-      author: fallbackAuthor,
-      totalPages: pages.length,
-      coverPath: coverPath,
-      coverSource: coverPath != null ? 'first_page' : 'generated',
-    );
-  }
-
-  Future<BookMetadataSnapshot> _extractCbr(
-    File file,
-    String fallbackTitle,
-    String fallbackAuthor,
-  ) async {
-    String? coverPath;
-    int totalPages = 0;
-
-    if (Platform.isAndroid) {
-      final extracted = await CbrExtractorService.extract(file.path);
-      if (extracted != null && extracted.isNotEmpty) {
-        totalPages = extracted.length;
-        coverPath = extracted.first;
-      }
-    }
-
-    return BookMetadataSnapshot(
-      title: fallbackTitle,
-      author: fallbackAuthor,
-      totalPages: totalPages,
-      coverPath: coverPath,
-      coverSource: coverPath != null ? 'first_page' : 'generated',
-    );
-  }
-
   Future<BookMetadataSnapshot> _fallback(
     File file,
     String fallbackTitle,
@@ -231,6 +165,9 @@ class BookMediaService {
         '${sourcePath.hashCode}_${format.toLowerCase()}_placeholder.png',
       ),
     );
+    if (file.existsSync()) {
+      return file.path;
+    }
 
     final image = img.Image(420, 640);
     final background = _placeholderBackground(format);
@@ -258,8 +195,12 @@ class BookMediaService {
     List<int> bytes, {
     required String suffix,
   }) async {
-    final decoded = img.decodeImage(Uint8List.fromList(bytes));
     final output = File(p.join(dir.path, '${sourcePath.hashCode}_$suffix.png'));
+    if (output.existsSync()) {
+      return output.path;
+    }
+
+    final decoded = img.decodeImage(Uint8List.fromList(bytes));
 
     if (decoded == null) {
       await output.writeAsBytes(bytes, flush: true);
@@ -279,14 +220,6 @@ class BookMediaService {
       count += _countEpubChapters(chapter.SubChapters ?? const []);
     }
     return count;
-  }
-
-  bool _isImage(String name) {
-    final lower = name.toLowerCase();
-    return lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.png') ||
-        lower.endsWith('.webp');
   }
 }
 

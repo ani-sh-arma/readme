@@ -95,12 +95,15 @@ class _PdfReaderState extends State<PdfReader> {
     final state = context.watch<ReaderCubit>().state;
     final preset = state.settings?.theme ?? 'Light';
     final style = resolveReaderStyle(state.settings);
+    final scrollMode = state.settings?.scrollMode ?? 'paged';
     final invert = preset == 'Dark' || preset == 'Amoled';
     final bg = invert ? Colors.black : style.background;
 
     Widget pdf = PdfView(
       controller: _controller!,
-      scrollDirection: Axis.horizontal,
+      scrollDirection: scrollMode == 'continuous'
+          ? Axis.vertical
+          : Axis.horizontal,
       backgroundDecoration: BoxDecoration(color: bg),
       onPageChanged: (page) {
         final total = widget.book.totalPages > 0 ? widget.book.totalPages : 1;

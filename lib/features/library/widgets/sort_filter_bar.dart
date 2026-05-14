@@ -36,13 +36,6 @@ class SortFilterBar extends StatelessWidget {
                 onSelected: (v) =>
                     bloc.add(LibraryFormatFilterChanged(v ? 'pdf' : null)),
               ),
-              const SizedBox(width: 4),
-              _FilterChip(
-                label: 'CBZ',
-                selected: state.formatFilter == 'cbz',
-                onSelected: (v) =>
-                    bloc.add(LibraryFormatFilterChanged(v ? 'cbz' : null)),
-              ),
               const SizedBox(width: 8),
               // Status filter chips
               _FilterChip(

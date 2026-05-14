@@ -19,6 +19,7 @@ class LibraryState extends Equatable {
     this.favoritesOnly = false,
     this.searchQuery = '',
     this.scanProgress,
+    this.lastSyncedAt,
   });
 
   final List<Book> books;
@@ -32,6 +33,7 @@ class LibraryState extends Equatable {
   final bool favoritesOnly;
   final String searchQuery;
   final String? scanProgress; // path being scanned
+  final DateTime? lastSyncedAt;
 
   List<Book> get filteredBooks {
     var list = List<Book>.from(books);
@@ -106,6 +108,7 @@ class LibraryState extends Equatable {
     bool? favoritesOnly,
     String? searchQuery,
     String? scanProgress,
+    DateTime? lastSyncedAt,
     bool clearError = false,
     bool clearScanProgress = false,
     bool clearFormatFilter = false,
@@ -129,6 +132,7 @@ class LibraryState extends Equatable {
       scanProgress: clearScanProgress
           ? null
           : (scanProgress ?? this.scanProgress),
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );
   }
 
@@ -145,5 +149,6 @@ class LibraryState extends Equatable {
     favoritesOnly,
     searchQuery,
     scanProgress,
+    lastSyncedAt,
   ];
 }

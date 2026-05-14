@@ -78,6 +78,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
             title: const Text('Library'),
             actions: [
               IconButton(
+                icon: const Icon(Icons.sync),
+                onPressed: () =>
+                    context.read<LibraryBloc>().add(LibrarySyncRequested()),
+                tooltip: 'Sync library',
+              ),
+              IconButton(
                 icon: Icon(_searchVisible ? Icons.close : Icons.search),
                 onPressed: _toggleSearch,
                 tooltip: _searchVisible ? 'Close search' : 'Search',
@@ -149,7 +155,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (state.scanProgress != null) {
       return Column(
         children: [
-          LinearProgressIndicator(),
+          const LinearProgressIndicator(),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -193,8 +199,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (state.viewMode == LibraryViewMode.grid) {
       return RefreshIndicator(
         onRefresh: () async {
-          // Pull-to-refresh: re-add LibraryStarted to force stream re-listen
-          context.read<LibraryBloc>().add(LibraryStarted());
+          context.read<LibraryBloc>().add(LibrarySyncRequested());
         },
         child: GridView.builder(
           padding: const EdgeInsets.all(12),
@@ -216,12 +221,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<LibraryBloc>().add(LibraryStarted());
+        context.read<LibraryBloc>().add(LibrarySyncRequested());
       },
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: books.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (ctx, i) => BookListItem(
           book: books[i],
           onTap: () => _openBook(context, books[i]),

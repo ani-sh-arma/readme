@@ -2,18 +2,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const List<String> supportedExtensions = [
-    'epub',
-    'pdf',
-    'txt',
-    'html',
-    'htm',
-    'cbz',
-    'cbr',
-    'mobi',
-    'azw',
-    'azw3',
-  ];
+  static const List<String> supportedExtensions = ['epub', 'pdf'];
 
   static const List<String> readerFonts = [
     'Default',
@@ -29,6 +18,8 @@ class AppConstants {
   static const double minLineHeight = 1.0;
   static const double maxLineHeight = 3.0;
   static const double defaultLineHeight = 1.5;
+  static const String defaultScrollMode = 'paged';
+  static const String defaultReaderTheme = 'Light';
 
   // Drift DB page write-back debounce
   static const Duration positionSaveDebounce = Duration(seconds: 2);

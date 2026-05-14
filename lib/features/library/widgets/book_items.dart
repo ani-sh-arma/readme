@@ -129,10 +129,15 @@ class _CoverImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final coverPath = book.coverPath;
     if (coverPath != null && File(coverPath).existsSync()) {
-      return Image.file(
-        File(coverPath),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _Placeholder(book: book),
+      return RepaintBoundary(
+        child: Image(
+          image: ResizeImage(FileImage(File(coverPath)), width: 600),
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stackTrace) =>
+              _Placeholder(book: book),
+        ),
       );
     }
     return _Placeholder(book: book);
@@ -221,14 +226,6 @@ class _Placeholder extends StatelessWidget {
         return Icons.menu_book_outlined;
       case 'pdf':
         return Icons.picture_as_pdf_outlined;
-      case 'cbz':
-      case 'cbr':
-        return Icons.collections_outlined;
-      case 'txt':
-        return Icons.article_outlined;
-      case 'html':
-      case 'htm':
-        return Icons.html_outlined;
       default:
         return Icons.description_outlined;
     }

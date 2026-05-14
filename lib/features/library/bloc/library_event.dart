@@ -7,6 +7,8 @@ abstract class LibraryEvent {}
 
 class LibraryStarted extends LibraryEvent {}
 
+class LibrarySyncRequested extends LibraryEvent {}
+
 class LibraryBooksUpdated extends LibraryEvent {
   LibraryBooksUpdated(this.books);
   final List<Book> books;

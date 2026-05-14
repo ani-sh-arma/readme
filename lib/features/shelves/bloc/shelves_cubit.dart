@@ -14,27 +14,57 @@ class ShelvesCubit extends Cubit<ShelvesState> {
 
   final ShelfRepository _shelfRepo;
   final BookRepository _bookRepo;
-  StreamSubscription<dynamic>? _sub;
+  StreamSubscription<List<Shelf>>? _sub;
   final Map<String, StreamSubscription<FileSystemEvent>> _directoryWatchers =
       {};
   final Map<String, Future<void>> _watcherQueues = {};
+  bool _started = false;
 
   Future<void> start() async {
-    emit(state.copyWith(isLoading: true));
+    if (_started) return;
+    _started = true;
+    emit(state.copyWith(isLoading: true, clearError: true));
     await _sub?.cancel();
     _sub = _shelfRepo.watchAllShelves().listen((shelves) {
       _syncDirectoryWatchers(shelves);
       emit(state.copyWith(shelves: shelves, isLoading: false));
     });
+    await syncAllRoots();
+  }
+
+  Future<void> syncAllRoots() async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+    try {
+      final roots = await _shelfRepo.getRootShelves();
+      for (final root in roots) {
+        await _syncRoot(root);
+      }
+      emit(state.copyWith(isLoading: false, clearSyncingPath: true));
+    } catch (e) {
+      emit(
+        state.copyWith(
+          error: e.toString(),
+          isLoading: false,
+          clearSyncingPath: true,
+        ),
+      );
+    }
   }
 
   Future<void> addDirectory(Directory dir) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, syncingPath: dir.path));
     try {
       await _shelfRepo.registerDirectoryTree(dir);
       await _bookRepo.scanDirectory(dir);
+      emit(state.copyWith(isLoading: false, clearSyncingPath: true));
     } catch (e) {
-      emit(state.copyWith(error: e.toString(), isLoading: false));
+      emit(
+        state.copyWith(
+          error: e.toString(),
+          isLoading: false,
+          clearSyncingPath: true,
+        ),
+      );
     }
   }
 
@@ -43,11 +73,22 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   }
 
   Future<void> createSubDirectory(String parentPath, String name) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, syncingPath: parentPath));
     try {
       await _shelfRepo.createDirectory(parentPath, name);
+      final root = _rootForPath(parentPath);
+      if (root != null) {
+        await _syncRoot(root);
+      }
+      emit(state.copyWith(isLoading: false, clearSyncingPath: true));
     } catch (e) {
-      emit(state.copyWith(error: e.toString(), isLoading: false));
+      emit(
+        state.copyWith(
+          error: e.toString(),
+          isLoading: false,
+          clearSyncingPath: true,
+        ),
+      );
     }
   }
 
@@ -64,10 +105,10 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   }
 
   @override
-  Future<void> close() {
-    _sub?.cancel();
+  Future<void> close() async {
+    await _sub?.cancel();
     for (final sub in _directoryWatchers.values) {
-      sub.cancel();
+      await sub.cancel();
     }
     _directoryWatchers.clear();
     _watcherQueues.clear();
@@ -75,10 +116,13 @@ class ShelvesCubit extends Cubit<ShelvesState> {
   }
 
   void _syncDirectoryWatchers(List<Shelf> shelves) {
-    final currentPaths = shelves.map((shelf) => shelf.dirPath).toSet();
+    final roots = shelves
+        .where((shelf) => shelf.parentShelfId == null)
+        .toList();
+    final currentPaths = roots.map((shelf) => shelf.dirPath).toSet();
 
     final stalePaths = _directoryWatchers.keys
-        .where((p) => !currentPaths.contains(p))
+        .where((path) => !currentPaths.contains(path))
         .toList();
     for (final path in stalePaths) {
       _directoryWatchers[path]?.cancel();
@@ -86,34 +130,41 @@ class ShelvesCubit extends Cubit<ShelvesState> {
       _watcherQueues.remove(path);
     }
 
-    for (final shelf in shelves) {
-      final path = shelf.dirPath;
-      if (_directoryWatchers.containsKey(path)) continue;
-      _watchShelf(shelf);
+    for (final root in roots) {
+      if (_directoryWatchers.containsKey(root.dirPath)) continue;
+      _watchRoot(root);
     }
   }
 
-  void _watchShelf(Shelf shelf) {
-    final dir = Directory(shelf.dirPath);
+  void _watchRoot(Shelf root) {
+    final dir = Directory(root.dirPath);
     if (!dir.existsSync()) return;
 
-    final sub = dir.watch(recursive: shelf.scanRecursive).listen((event) async {
-      if (event.isDirectory) return;
-      _enqueueWatcherWork(shelf.dirPath, () async {
+    final sub = dir.watch(recursive: root.scanRecursive).listen((event) {
+      _enqueueWatcherWork(root.dirPath, () async {
+        if (event.isDirectory || event.type == FileSystemEvent.move) {
+          await _syncRoot(root);
+          return;
+        }
+
         if (event.type == FileSystemEvent.delete) {
           await _bookRepo.removeBookByPath(event.path);
           return;
         }
 
         if (event.type == FileSystemEvent.create ||
-            event.type == FileSystemEvent.modify ||
-            event.type == FileSystemEvent.move) {
-          await _bookRepo.upsertFromFile(File(event.path));
+            event.type == FileSystemEvent.modify) {
+          final file = File(event.path);
+          if (!file.existsSync()) {
+            await _syncRoot(root);
+            return;
+          }
+          await _bookRepo.upsertFromFile(file);
         }
       });
     });
 
-    _directoryWatchers[shelf.dirPath] = sub;
+    _directoryWatchers[root.dirPath] = sub;
   }
 
   void _enqueueWatcherWork(String path, Future<void> Function() action) {
@@ -124,5 +175,33 @@ class ShelvesCubit extends Cubit<ShelvesState> {
     ) {
       debugPrint('Directory watch error for $path: $error\n$stackTrace');
     });
+  }
+
+  Future<void> _syncRoot(Shelf root) async {
+    final directory = Directory(root.dirPath);
+    emit(state.copyWith(syncingPath: root.dirPath));
+    if (!directory.existsSync()) {
+      await _shelfRepo.removeShelf(root.id);
+      emit(state.copyWith(clearSyncingPath: true));
+      return;
+    }
+
+    await _shelfRepo.registerDirectoryTree(
+      directory,
+      scanRecursive: root.scanRecursive,
+    );
+    await _bookRepo.scanDirectory(directory, recursive: root.scanRecursive);
+    emit(state.copyWith(clearSyncingPath: true));
+  }
+
+  Shelf? _rootForPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    for (final shelf in state.rootShelves) {
+      final root = shelf.dirPath.replaceAll('\\', '/');
+      if (normalized == root || normalized.startsWith('$root/')) {
+        return shelf;
+      }
+    }
+    return null;
   }
 }

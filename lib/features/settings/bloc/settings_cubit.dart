@@ -3,51 +3,95 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- State ---
-class SettingsState extends Equatable {
-  const SettingsState({
-    this.themeMode = ThemeMode.system,
-    this.defaultFontSize = 16.0,
-    this.defaultFontFamily = 'Default',
-    this.defaultLineHeight = 1.5,
-    this.defaultScrollMode = 'paged',
-    this.defaultReaderTheme = 'Light',
+import '../../../core/constants/app_constants.dart';
+
+class EpubSettingsDefaults extends Equatable {
+  const EpubSettingsDefaults({
+    this.fontSize = AppConstants.defaultFontSize,
+    this.fontFamily = 'Default',
+    this.lineHeight = AppConstants.defaultLineHeight,
+    this.scrollMode = AppConstants.defaultScrollMode,
+    this.theme = AppConstants.defaultReaderTheme,
   });
 
-  final ThemeMode themeMode;
-  final double defaultFontSize;
-  final String defaultFontFamily;
-  final double defaultLineHeight;
-  final String defaultScrollMode;
-  final String defaultReaderTheme;
+  final double fontSize;
+  final String fontFamily;
+  final double lineHeight;
+  final String scrollMode;
+  final String theme;
 
-  SettingsState copyWith({
-    ThemeMode? themeMode,
-    double? defaultFontSize,
-    String? defaultFontFamily,
-    double? defaultLineHeight,
-    String? defaultScrollMode,
-    String? defaultReaderTheme,
+  EpubSettingsDefaults copyWith({
+    double? fontSize,
+    String? fontFamily,
+    double? lineHeight,
+    String? scrollMode,
+    String? theme,
   }) {
-    return SettingsState(
-      themeMode: themeMode ?? this.themeMode,
-      defaultFontSize: defaultFontSize ?? this.defaultFontSize,
-      defaultFontFamily: defaultFontFamily ?? this.defaultFontFamily,
-      defaultLineHeight: defaultLineHeight ?? this.defaultLineHeight,
-      defaultScrollMode: defaultScrollMode ?? this.defaultScrollMode,
-      defaultReaderTheme: defaultReaderTheme ?? this.defaultReaderTheme,
+    return EpubSettingsDefaults(
+      fontSize: fontSize ?? this.fontSize,
+      fontFamily: fontFamily ?? this.fontFamily,
+      lineHeight: lineHeight ?? this.lineHeight,
+      scrollMode: scrollMode ?? this.scrollMode,
+      theme: theme ?? this.theme,
     );
   }
 
   @override
   List<Object?> get props => [
-    themeMode,
-    defaultFontSize,
-    defaultFontFamily,
-    defaultLineHeight,
-    defaultScrollMode,
-    defaultReaderTheme,
+    fontSize,
+    fontFamily,
+    lineHeight,
+    scrollMode,
+    theme,
   ];
+}
+
+class PdfSettingsDefaults extends Equatable {
+  const PdfSettingsDefaults({
+    this.scrollMode = AppConstants.defaultScrollMode,
+    this.theme = AppConstants.defaultReaderTheme,
+  });
+
+  final String scrollMode;
+  final String theme;
+
+  PdfSettingsDefaults copyWith({String? scrollMode, String? theme}) {
+    return PdfSettingsDefaults(
+      scrollMode: scrollMode ?? this.scrollMode,
+      theme: theme ?? this.theme,
+    );
+  }
+
+  @override
+  List<Object?> get props => [scrollMode, theme];
+}
+
+// --- State ---
+class SettingsState extends Equatable {
+  const SettingsState({
+    this.themeMode = ThemeMode.system,
+    this.epubDefaults = const EpubSettingsDefaults(),
+    this.pdfDefaults = const PdfSettingsDefaults(),
+  });
+
+  final ThemeMode themeMode;
+  final EpubSettingsDefaults epubDefaults;
+  final PdfSettingsDefaults pdfDefaults;
+
+  SettingsState copyWith({
+    ThemeMode? themeMode,
+    EpubSettingsDefaults? epubDefaults,
+    PdfSettingsDefaults? pdfDefaults,
+  }) {
+    return SettingsState(
+      themeMode: themeMode ?? this.themeMode,
+      epubDefaults: epubDefaults ?? this.epubDefaults,
+      pdfDefaults: pdfDefaults ?? this.pdfDefaults,
+    );
+  }
+
+  @override
+  List<Object?> get props => [themeMode, epubDefaults, pdfDefaults];
 }
 
 // --- Cubit ---
@@ -57,11 +101,13 @@ class SettingsCubit extends Cubit<SettingsState> {
   }
 
   static const _kThemeMode = 'settings_themeMode';
-  static const _kFontSize = 'settings_fontSize';
-  static const _kFontFamily = 'settings_fontFamily';
-  static const _kLineHeight = 'settings_lineHeight';
-  static const _kScrollMode = 'settings_scrollMode';
-  static const _kReaderTheme = 'settings_readerTheme';
+  static const _kEpubFontSize = 'settings_epub_fontSize';
+  static const _kEpubFontFamily = 'settings_epub_fontFamily';
+  static const _kEpubLineHeight = 'settings_epub_lineHeight';
+  static const _kEpubScrollMode = 'settings_epub_scrollMode';
+  static const _kEpubReaderTheme = 'settings_epub_readerTheme';
+  static const _kPdfScrollMode = 'settings_pdf_scrollMode';
+  static const _kPdfReaderTheme = 'settings_pdf_readerTheme';
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -69,11 +115,28 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(
       state.copyWith(
         themeMode: ThemeMode.values[themeModeIndex],
-        defaultFontSize: prefs.getDouble(_kFontSize) ?? 16.0,
-        defaultFontFamily: prefs.getString(_kFontFamily) ?? 'Default',
-        defaultLineHeight: prefs.getDouble(_kLineHeight) ?? 1.5,
-        defaultScrollMode: prefs.getString(_kScrollMode) ?? 'paged',
-        defaultReaderTheme: prefs.getString(_kReaderTheme) ?? 'Light',
+        epubDefaults: EpubSettingsDefaults(
+          fontSize:
+              prefs.getDouble(_kEpubFontSize) ?? AppConstants.defaultFontSize,
+          fontFamily: prefs.getString(_kEpubFontFamily) ?? 'Default',
+          lineHeight:
+              prefs.getDouble(_kEpubLineHeight) ??
+              AppConstants.defaultLineHeight,
+          scrollMode:
+              prefs.getString(_kEpubScrollMode) ??
+              AppConstants.defaultScrollMode,
+          theme:
+              prefs.getString(_kEpubReaderTheme) ??
+              AppConstants.defaultReaderTheme,
+        ),
+        pdfDefaults: PdfSettingsDefaults(
+          scrollMode:
+              prefs.getString(_kPdfScrollMode) ??
+              AppConstants.defaultScrollMode,
+          theme:
+              prefs.getString(_kPdfReaderTheme) ??
+              AppConstants.defaultReaderTheme,
+        ),
       ),
     );
   }
@@ -84,33 +147,63 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(state.copyWith(themeMode: mode));
   }
 
-  Future<void> setDefaultFontSize(double size) async {
+  Future<void> setEpubFontSize(double size) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_kFontSize, size);
-    emit(state.copyWith(defaultFontSize: size));
+    await prefs.setDouble(_kEpubFontSize, size);
+    emit(
+      state.copyWith(epubDefaults: state.epubDefaults.copyWith(fontSize: size)),
+    );
   }
 
-  Future<void> setDefaultFontFamily(String family) async {
+  Future<void> setEpubFontFamily(String family) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kFontFamily, family);
-    emit(state.copyWith(defaultFontFamily: family));
+    await prefs.setString(_kEpubFontFamily, family);
+    emit(
+      state.copyWith(
+        epubDefaults: state.epubDefaults.copyWith(fontFamily: family),
+      ),
+    );
   }
 
-  Future<void> setDefaultLineHeight(double height) async {
+  Future<void> setEpubLineHeight(double height) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_kLineHeight, height);
-    emit(state.copyWith(defaultLineHeight: height));
+    await prefs.setDouble(_kEpubLineHeight, height);
+    emit(
+      state.copyWith(
+        epubDefaults: state.epubDefaults.copyWith(lineHeight: height),
+      ),
+    );
   }
 
-  Future<void> setScrollMode(String mode) async {
+  Future<void> setEpubScrollMode(String mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kScrollMode, mode);
-    emit(state.copyWith(defaultScrollMode: mode));
+    await prefs.setString(_kEpubScrollMode, mode);
+    emit(
+      state.copyWith(
+        epubDefaults: state.epubDefaults.copyWith(scrollMode: mode),
+      ),
+    );
   }
 
-  Future<void> setReaderTheme(String theme) async {
+  Future<void> setEpubReaderTheme(String theme) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kReaderTheme, theme);
-    emit(state.copyWith(defaultReaderTheme: theme));
+    await prefs.setString(_kEpubReaderTheme, theme);
+    emit(
+      state.copyWith(epubDefaults: state.epubDefaults.copyWith(theme: theme)),
+    );
+  }
+
+  Future<void> setPdfScrollMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPdfScrollMode, mode);
+    emit(
+      state.copyWith(pdfDefaults: state.pdfDefaults.copyWith(scrollMode: mode)),
+    );
+  }
+
+  Future<void> setPdfReaderTheme(String theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPdfReaderTheme, theme);
+    emit(state.copyWith(pdfDefaults: state.pdfDefaults.copyWith(theme: theme)));
   }
 }

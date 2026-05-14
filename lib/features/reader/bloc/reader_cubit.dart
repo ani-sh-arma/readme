@@ -12,18 +12,18 @@ import 'reader_bloc.dart';
 /// applied to a book the first time its per-book settings row is created.
 class ReaderDefaults {
   const ReaderDefaults({
-    required this.fontSize,
-    required this.fontFamily,
-    required this.lineHeight,
     required this.scrollMode,
     required this.theme,
+    this.fontSize,
+    this.fontFamily,
+    this.lineHeight,
   });
 
-  final double fontSize;
-  final String fontFamily;
-  final double lineHeight;
   final String scrollMode;
   final String theme;
+  final double? fontSize;
+  final String? fontFamily;
+  final double? lineHeight;
 }
 
 class ReaderCubit extends Cubit<ReaderState> {
@@ -60,14 +60,14 @@ class ReaderCubit extends Cubit<ReaderState> {
       await _bookSettingsRepo.upsertSettings(
         BookSettingsCompanion(
           bookId: Value(book.id),
-          fontSize: defaults != null
-              ? Value(defaults.fontSize)
+          fontSize: defaults?.fontSize != null
+              ? Value(defaults!.fontSize!)
               : const Value.absent(),
-          fontFamily: defaults != null
-              ? Value(defaults.fontFamily)
+          fontFamily: defaults?.fontFamily != null
+              ? Value(defaults!.fontFamily!)
               : const Value.absent(),
-          lineHeight: defaults != null
-              ? Value(defaults.lineHeight)
+          lineHeight: defaults?.lineHeight != null
+              ? Value(defaults!.lineHeight!)
               : const Value.absent(),
           scrollMode: defaults != null
               ? Value(defaults.scrollMode)
@@ -210,7 +210,9 @@ class ReaderCubit extends Cubit<ReaderState> {
     // End reading session
     if (state.sessionId != null) {
       final totalPages = book?.totalPages ?? 0;
-      final pagesRead = totalPages > 0 ? (_maxProgress * totalPages).round() : 0;
+      final pagesRead = totalPages > 0
+          ? (_maxProgress * totalPages).round()
+          : 0;
       await _readingSessionRepo.endSession(state.sessionId!, pagesRead);
     }
 

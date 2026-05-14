@@ -25,6 +25,9 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
         final settings = state.settings;
         if (settings == null) return const SizedBox.shrink();
         final cubit = context.read<ReaderCubit>();
+        final format = state.book?.format ?? '';
+        final isEpub = format == 'epub';
+        final isPdf = format == 'pdf';
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -44,97 +47,99 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () => _resetToGlobalDefaults(context, cubit, settings),
+                  onPressed: () =>
+                      _resetToGlobalDefaults(context, cubit, settings, format),
                   icon: const Icon(Icons.restart_alt),
                   label: const Text('Reset to app defaults'),
                 ),
               ),
-              // Theme presets
-              Text('Theme', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                isPdf ? 'PDF Settings' : 'EPUB Settings',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               _ThemeRow(
                 currentTheme: settings.theme,
                 cubit: cubit,
                 settings: settings,
+                allowCustom: isEpub,
               ),
               const Divider(),
-              // Font size
-              Row(
-                children: [
-                  const Icon(Icons.format_size),
-                  const SizedBox(width: 8),
-                  const Text('Size'),
-                  Expanded(
-                    child: Slider(
-                      value: settings.fontSize,
-                      min: AppConstants.minFontSize,
-                      max: AppConstants.maxFontSize,
-                      divisions: 26,
-                      label: settings.fontSize.toStringAsFixed(0),
-                      onChanged: (v) => cubit.updateSettings(
-                        BookSettingsCompanion(
-                          bookId: Value(settings.bookId),
-                          fontSize: Value(v),
+              if (isEpub) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.format_size),
+                    const SizedBox(width: 8),
+                    const Text('Size'),
+                    Expanded(
+                      child: Slider(
+                        value: settings.fontSize,
+                        min: AppConstants.minFontSize,
+                        max: AppConstants.maxFontSize,
+                        divisions: 26,
+                        label: settings.fontSize.toStringAsFixed(0),
+                        onChanged: (v) => cubit.updateSettings(
+                          BookSettingsCompanion(
+                            bookId: Value(settings.bookId),
+                            fontSize: Value(v),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              // Line height
-              Row(
-                children: [
-                  const Icon(Icons.format_line_spacing),
-                  const SizedBox(width: 8),
-                  const Text('Spacing'),
-                  Expanded(
-                    child: Slider(
-                      value: settings.lineHeight,
-                      min: AppConstants.minLineHeight,
-                      max: AppConstants.maxLineHeight,
-                      divisions: 20,
-                      label: settings.lineHeight.toStringAsFixed(1),
-                      onChanged: (v) => cubit.updateSettings(
-                        BookSettingsCompanion(
-                          bookId: Value(settings.bookId),
-                          lineHeight: Value(v),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.format_line_spacing),
+                    const SizedBox(width: 8),
+                    const Text('Spacing'),
+                    Expanded(
+                      child: Slider(
+                        value: settings.lineHeight,
+                        min: AppConstants.minLineHeight,
+                        max: AppConstants.maxLineHeight,
+                        divisions: 20,
+                        label: settings.lineHeight.toStringAsFixed(1),
+                        onChanged: (v) => cubit.updateSettings(
+                          BookSettingsCompanion(
+                            bookId: Value(settings.bookId),
+                            lineHeight: Value(v),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              // Font family
-              Row(
-                children: [
-                  const Icon(Icons.font_download_outlined),
-                  const SizedBox(width: 8),
-                  const Text('Font'),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButton<String>(
-                      value: settings.fontFamily,
-                      isExpanded: true,
-                      items: AppConstants.readerFonts
-                          .map(
-                            (f) => DropdownMenuItem(value: f, child: Text(f)),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          cubit.updateSettings(
-                            BookSettingsCompanion(
-                              bookId: Value(settings.bookId),
-                              fontFamily: Value(v),
-                            ),
-                          );
-                        }
-                      },
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.font_download_outlined),
+                    const SizedBox(width: 8),
+                    const Text('Font'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButton<String>(
+                        value: settings.fontFamily,
+                        isExpanded: true,
+                        items: AppConstants.readerFonts
+                            .map(
+                              (f) => DropdownMenuItem(value: f, child: Text(f)),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            cubit.updateSettings(
+                              BookSettingsCompanion(
+                                bookId: Value(settings.bookId),
+                                fontFamily: Value(v),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              // Scroll mode
+                  ],
+                ),
+              ],
               Row(
                 children: [
                   const Icon(Icons.swap_vert),
@@ -155,47 +160,6 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
                         bookId: Value(settings.bookId),
                         scrollMode: Value(sel.first),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.auto_mode_outlined),
-                  const SizedBox(width: 8),
-                  const Text('Auto-scroll'),
-                  const Spacer(),
-                  Switch(
-                    value: settings.autoScrollEnabled,
-                    onChanged: (value) => cubit.updateSettings(
-                      BookSettingsCompanion(
-                        bookId: Value(settings.bookId),
-                        autoScrollEnabled: Value(value),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.speed_outlined),
-                  const SizedBox(width: 8),
-                  const Text('Speed'),
-                  Expanded(
-                    child: Slider(
-                      value: settings.autoScrollSpeed,
-                      min: 8,
-                      max: 72,
-                      divisions: 16,
-                      label: settings.autoScrollSpeed.toStringAsFixed(0),
-                      onChanged: settings.autoScrollEnabled
-                          ? (v) => cubit.updateSettings(
-                              BookSettingsCompanion(
-                                bookId: Value(settings.bookId),
-                                autoScrollSpeed: Value(v),
-                              ),
-                            )
-                          : null,
                     ),
                   ),
                 ],
@@ -230,44 +194,78 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  const Icon(Icons.compare_arrows_outlined),
-                  const SizedBox(width: 8),
-                  const Text('Direction'),
-                  const SizedBox(width: 8),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'ltr', label: Text('LTR')),
-                      ButtonSegment(value: 'rtl', label: Text('RTL')),
-                    ],
-                    selected: {settings.readingDirection},
-                    onSelectionChanged: (selection) => cubit.updateSettings(
-                      BookSettingsCompanion(
-                        bookId: Value(settings.bookId),
-                        readingDirection: Value(selection.first),
+              if (isEpub) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.auto_mode_outlined),
+                    const SizedBox(width: 8),
+                    const Text('Auto-scroll'),
+                    const Spacer(),
+                    Switch(
+                      value: settings.autoScrollEnabled,
+                      onChanged: (value) => cubit.updateSettings(
+                        BookSettingsCompanion(
+                          bookId: Value(settings.bookId),
+                          autoScrollEnabled: Value(value),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.chrome_reader_mode_outlined),
-                  const SizedBox(width: 8),
-                  const Text('Double page'),
-                  const Spacer(),
-                  Switch(
-                    value: settings.doublePageSpread,
-                    onChanged: (value) => cubit.updateSettings(
-                      BookSettingsCompanion(
-                        bookId: Value(settings.bookId),
-                        doublePageSpread: Value(value),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.speed_outlined),
+                    const SizedBox(width: 8),
+                    const Text('Speed'),
+                    Expanded(
+                      child: Slider(
+                        value: settings.autoScrollSpeed,
+                        min: 8,
+                        max: 72,
+                        divisions: 16,
+                        label: settings.autoScrollSpeed.toStringAsFixed(0),
+                        onChanged: settings.autoScrollEnabled
+                            ? (v) => cubit.updateSettings(
+                                BookSettingsCompanion(
+                                  bookId: Value(settings.bookId),
+                                  autoScrollSpeed: Value(v),
+                                ),
+                              )
+                            : null,
                       ),
                     ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.compare_arrows_outlined),
+                    const SizedBox(width: 8),
+                    const Text('Direction'),
+                    const SizedBox(width: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'ltr', label: Text('LTR')),
+                        ButtonSegment(value: 'rtl', label: Text('RTL')),
+                      ],
+                      selected: {settings.readingDirection},
+                      onSelectionChanged: (selection) => cubit.updateSettings(
+                        BookSettingsCompanion(
+                          bookId: Value(settings.bookId),
+                          readingDirection: Value(selection.first),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (isPdf)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'PDFs keep their original page layout, so text size and spacing stay tied to the document itself.',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                ],
-              ),
+                ),
             ],
           ),
         );
@@ -279,24 +277,38 @@ class _BookSettingsPanelState extends State<BookSettingsPanel> {
     BuildContext context,
     ReaderCubit cubit,
     BookSetting settings,
+    String format,
   ) {
     final global = context.read<SettingsCubit>().state;
+    final isPdf = format == 'pdf';
     cubit.updateSettings(
       BookSettingsCompanion(
         bookId: Value(settings.bookId),
-        fontSize: Value(global.defaultFontSize),
-        fontFamily: Value(global.defaultFontFamily),
-        lineHeight: Value(global.defaultLineHeight),
-        scrollMode: Value(global.defaultScrollMode),
-        theme: Value(global.defaultReaderTheme),
-        autoScrollEnabled: const Value(false),
-        autoScrollSpeed: const Value(24),
+        fontSize: isPdf
+            ? const Value.absent()
+            : Value(global.epubDefaults.fontSize),
+        fontFamily: isPdf
+            ? const Value.absent()
+            : Value(global.epubDefaults.fontFamily),
+        lineHeight: isPdf
+            ? const Value.absent()
+            : Value(global.epubDefaults.lineHeight),
+        scrollMode: Value(
+          isPdf
+              ? global.pdfDefaults.scrollMode
+              : global.epubDefaults.scrollMode,
+        ),
+        theme: Value(
+          isPdf ? global.pdfDefaults.theme : global.epubDefaults.theme,
+        ),
+        autoScrollEnabled: isPdf ? const Value.absent() : const Value(false),
+        autoScrollSpeed: isPdf ? const Value.absent() : const Value(24),
         sleepTimerMinutes: const Value(0),
-        readingDirection: const Value('ltr'),
+        readingDirection: isPdf ? const Value.absent() : const Value('ltr'),
         doublePageSpread: const Value(false),
-        customBg: const Value.absent(),
-        customFg: const Value.absent(),
-        customAccent: const Value.absent(),
+        customBg: isPdf ? const Value(null) : const Value.absent(),
+        customFg: isPdf ? const Value(null) : const Value.absent(),
+        customAccent: isPdf ? const Value(null) : const Value.absent(),
       ),
     );
   }
@@ -307,11 +319,13 @@ class _ThemeRow extends StatelessWidget {
     required this.currentTheme,
     required this.cubit,
     required this.settings,
+    required this.allowCustom,
   });
 
   final String currentTheme;
   final ReaderCubit cubit;
   final BookSetting settings;
+  final bool allowCustom;
 
   @override
   Widget build(BuildContext context) {
@@ -334,28 +348,31 @@ class _ThemeRow extends StatelessWidget {
                   ),
                 ),
               ),
-          // Custom color picker button
-          InkWell(
-            onTap: () => _showCustomPicker(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: currentTheme == 'Custom'
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey,
+          if (allowCustom)
+            InkWell(
+              onTap: () => _showCustomPicker(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.color_lens_outlined, size: 16),
-                  SizedBox(width: 4),
-                  Text('Custom'),
-                ],
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: currentTheme == 'Custom'
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.color_lens_outlined, size: 16),
+                    SizedBox(width: 4),
+                    Text('Custom'),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

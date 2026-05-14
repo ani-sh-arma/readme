@@ -87,28 +87,65 @@ class _ShelvesScreenState extends State<ShelvesScreen> {
     return BlocBuilder<ShelvesCubit, ShelvesState>(
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Shelves')),
+          appBar: AppBar(
+            title: const Text('Shelves'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.sync),
+                onPressed: () => context.read<ShelvesCubit>().syncAllRoots(),
+                tooltip: 'Sync shelves',
+              ),
+            ],
+          ),
           body: state.isLoading && state.shelves.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : state.rootShelves.isEmpty
               ? _EmptyState(onAdd: () => _pickDirectory(context))
-              : ListView.builder(
-                  itemCount: state.rootShelves.length,
-                  itemBuilder: (ctx, i) {
-                    final shelf = state.rootShelves[i];
-                    return _ShelfNode(
-                      shelf: shelf,
-                      allShelves: state.shelves,
-                      onCreateSub: () =>
-                          _createSubDirectory(context, shelf.dirPath),
-                      onDelete: () =>
-                          context.read<ShelvesCubit>().removeShelf(shelf.id),
-                      onOpen: () => _openShelf(context, shelf),
-                      onRecursiveChanged: (value) => context
-                          .read<ShelvesCubit>()
-                          .updateScanRecursive(shelf, value),
-                    );
-                  },
+              : Column(
+                  children: [
+                    if (state.syncingPath != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Syncing ${state.syncingPath!}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: state.rootShelves.length,
+                        itemBuilder: (ctx, i) {
+                          final shelf = state.rootShelves[i];
+                          return _ShelfNode(
+                            shelf: shelf,
+                            allShelves: state.shelves,
+                            onCreateSub: () =>
+                                _createSubDirectory(context, shelf.dirPath),
+                            onDelete: () => context
+                                .read<ShelvesCubit>()
+                                .removeShelf(shelf.id),
+                            onOpen: () => _openShelf(context, shelf),
+                            onRecursiveChanged: (value) => context
+                                .read<ShelvesCubit>()
+                                .updateScanRecursive(shelf, value),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _pickDirectory(context),
@@ -121,9 +158,9 @@ class _ShelvesScreenState extends State<ShelvesScreen> {
   }
 
   void _openShelf(BuildContext context, Shelf shelf) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => _ShelfBooksScreen(shelf: shelf)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => _ShelfBooksScreen(shelf: shelf)));
   }
 }
 
@@ -175,10 +212,9 @@ class _ShelfNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = allShelves
-        .where((child) => child.parentShelfId == shelf.id)
-        .toList()
-      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    final children =
+        allShelves.where((child) => child.parentShelfId == shelf.id).toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
     return ExpansionTile(
       leading: const Icon(Icons.folder_outlined),
@@ -198,10 +234,7 @@ class _ShelfNode extends StatelessWidget {
             onPressed: onCreateSub,
           ),
           if (shelf.isRoot)
-            Switch(
-              value: shelf.scanRecursive,
-              onChanged: onRecursiveChanged,
-            ),
+            Switch(value: shelf.scanRecursive, onChanged: onRecursiveChanged),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Remove shelf',
@@ -217,10 +250,12 @@ class _ShelfNode extends StatelessWidget {
                 shelf: child,
                 allShelves: allShelves,
                 onCreateSub: () {
-                  final stateful = context.findAncestorStateOfType<_ShelvesScreenState>();
+                  final stateful = context
+                      .findAncestorStateOfType<_ShelvesScreenState>();
                   stateful?._createSubDirectory(context, child.dirPath);
                 },
-                onDelete: () => context.read<ShelvesCubit>().removeShelf(child.id),
+                onDelete: () =>
+                    context.read<ShelvesCubit>().removeShelf(child.id),
                 onOpen: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => _ShelfBooksScreen(shelf: child),

@@ -38,11 +38,13 @@ class ShelvesState extends Equatable {
     this.shelves = const [],
     this.isLoading = false,
     this.error,
+    this.syncingPath,
   });
 
   final List<Shelf> shelves;
   final bool isLoading;
   final String? error;
+  final String? syncingPath;
 
   /// Returns root shelves (no parent).
   List<Shelf> get rootShelves =>
@@ -55,15 +57,18 @@ class ShelvesState extends Equatable {
     List<Shelf>? shelves,
     bool? isLoading,
     String? error,
+    String? syncingPath,
     bool clearError = false,
+    bool clearSyncingPath = false,
   }) {
     return ShelvesState(
       shelves: shelves ?? this.shelves,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      syncingPath: clearSyncingPath ? null : (syncingPath ?? this.syncingPath),
     );
   }
 
   @override
-  List<Object?> get props => [shelves, isLoading, error];
+  List<Object?> get props => [shelves, isLoading, error, syncingPath];
 }

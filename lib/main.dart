@@ -48,9 +48,9 @@ class ReadMeApp extends StatelessWidget {
         providers: [
           BlocProvider(create: (_) => AppShellCubit()),
           BlocProvider(create: (_) => SettingsCubit()),
-          BlocProvider(create: (_) => LibraryBloc(bookRepo)),
+          BlocProvider(create: (_) => LibraryBloc(bookRepo, shelfRepo)),
           BlocProvider(
-            create: (_) => ShelvesCubit(shelfRepo, bookRepo),
+            create: (_) => ShelvesCubit(shelfRepo, bookRepo)..start(),
           ),
         ],
         child: BlocBuilder<SettingsCubit, SettingsState>(
@@ -140,4 +140,3 @@ class AppShell extends StatelessWidget {
     );
   }
 }
-

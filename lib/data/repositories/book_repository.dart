@@ -13,10 +13,12 @@ class BookRepository {
 
   final AppDatabase _db;
   final BookMediaService _media;
+  static const Set<String> _supportedFormats = {'epub', 'pdf'};
 
   // --- streams ---
 
-  Stream<List<Book>> watchAllBooks() => _db.booksDao.watchAllBooks();
+  Stream<List<Book>> watchAllBooks() =>
+      _db.booksDao.watchAllBooks().map(_supportedOnly);
   Stream<List<Book>> watchFavorites() => _db.booksDao.watchFavorites();
   Stream<List<Book>> watchReadList() => _db.booksDao.watchReadList();
   Stream<List<Book>> watchCurrentlyReading() =>
@@ -29,11 +31,12 @@ class BookRepository {
 
   // --- queries ---
 
-  Future<List<Book>> getAllBooks() => _db.booksDao.getAllBooks();
+  Future<List<Book>> getAllBooks() async =>
+      _supportedOnly(await _db.booksDao.getAllBooks());
   Future<Book?> getBookById(int id) => _db.booksDao.getBookById(id);
   Future<Book?> getBookByPath(String path) => _db.booksDao.getBookByPath(path);
-  Future<List<Book>> searchBooks(String query) =>
-      _db.booksDao.searchBooks(query);
+  Future<List<Book>> searchBooks(String query) async =>
+      _supportedOnly(await _db.booksDao.searchBooks(query));
 
   // --- mutations ---
 
@@ -44,11 +47,8 @@ class BookRepository {
 
   Future<int> deleteBook(int id) => _db.booksDao.deleteBook(id);
 
-  Future<void> updatePosition(
-    int id,
-    String position, {
-    double? progress,
-  }) => progress == null
+  Future<void> updatePosition(int id, String position, {double? progress}) =>
+      progress == null
       ? _db.booksDao.updatePosition(id, position)
       : _db.booksDao.updateReadingProgress(
           id,
@@ -77,13 +77,21 @@ class BookRepository {
 
   Future<void> upsertFromFile(File file) async {
     final format = formatFromPath(file.path);
-    // DjVu support is intentionally deferred; skip until a reader exists.
-    if (format == BookFormat.unknown || format == BookFormat.djvu) return;
+    if (format == BookFormat.unknown) return;
 
     if (!await file.exists()) return;
 
     final existing = await getBookByPath(file.path);
     final stat = await file.stat();
+    final currentCoverExists =
+        existing?.coverPath != null && File(existing!.coverPath!).existsSync();
+    if (existing != null &&
+        existing.fileSize == stat.size &&
+        currentCoverExists &&
+        existing.format == format.name) {
+      return;
+    }
+
     final metadata = await _media.extractMetadata(
       file,
       format: format.name,
@@ -124,27 +132,13 @@ class BookRepository {
   /// extension.
   static BookFormat formatFromPath(String path) {
     final ext = p.extension(path).toLowerCase().replaceFirst('.', '');
-    const map = {
-      'epub': BookFormat.epub,
-      'pdf': BookFormat.pdf,
-      'txt': BookFormat.txt,
-      'html': BookFormat.html,
-      'htm': BookFormat.html,
-      'cbz': BookFormat.cbz,
-      'cbr': BookFormat.cbr,
-      'mobi': BookFormat.mobi,
-      'azw': BookFormat.azw,
-      'azw3': BookFormat.azw3,
-      'djvu': BookFormat.djvu,
-    };
+    const map = {'epub': BookFormat.epub, 'pdf': BookFormat.pdf};
     if (map.containsKey(ext)) return map[ext]!;
 
     final mime = lookupMimeType(path);
     if (mime != null) {
       if (mime.contains('epub')) return BookFormat.epub;
       if (mime.contains('pdf')) return BookFormat.pdf;
-      if (mime.contains('text')) return BookFormat.txt;
-      if (mime.contains('zip')) return BookFormat.cbz;
     }
     return BookFormat.unknown;
   }
@@ -172,7 +166,7 @@ class BookRepository {
     await for (final entity in entities) {
       if (entity is! File) continue;
       final format = formatFromPath(entity.path);
-      if (format == BookFormat.unknown || format == BookFormat.djvu) continue;
+      if (format == BookFormat.unknown) continue;
 
       onProgress?.call(entity.path);
       seenPaths.add(entity.path);
@@ -206,4 +200,7 @@ class BookRepository {
     final normalizedRoot = rootPath.replaceAll('\\', '/');
     return normalizedFile.startsWith('$normalizedRoot/');
   }
+
+  List<Book> _supportedOnly(List<Book> books) =>
+      books.where((book) => _supportedFormats.contains(book.format)).toList();
 }

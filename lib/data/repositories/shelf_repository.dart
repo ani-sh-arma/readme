@@ -27,16 +27,13 @@ class ShelfRepository {
     int displayOrder = 0,
   }) {
     final name = p.basename(dirPath);
-    return _db.shelvesDao.insertShelf(
-      ShelvesCompanion(
-        name: Value(name),
-        dirPath: Value(dirPath),
-        parentShelfId: Value(parentId),
-        scanRecursive: Value(scanRecursive),
-        isRoot: Value(isRoot),
-        lastScannedAt: Value(DateTime.now()),
-        displayOrder: Value(displayOrder),
-      ),
+    return _upsertShelf(
+      dirPath,
+      name: name,
+      parentId: parentId,
+      scanRecursive: scanRecursive,
+      isRoot: isRoot,
+      displayOrder: displayOrder,
     );
   }
 
@@ -90,8 +87,9 @@ class ShelfRepository {
     required bool scanRecursive,
     required Set<String> visitedPaths,
   }) async {
-    final children = await dir.list(recursive: false, followLinks: false).toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final children =
+        await dir.list(recursive: false, followLinks: false).toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
 
     var displayOrder = 0;
     for (final entity in children) {
@@ -130,5 +128,31 @@ class ShelfRepository {
     final normalizedRoot = rootPath.replaceAll('\\', '/');
     return normalizedCandidate == normalizedRoot ||
         normalizedCandidate.startsWith('$normalizedRoot/');
+  }
+
+  Future<int> _upsertShelf(
+    String dirPath, {
+    required String name,
+    required int? parentId,
+    required bool scanRecursive,
+    required bool isRoot,
+    required int displayOrder,
+  }) async {
+    await _db.shelvesDao.insertShelf(
+      ShelvesCompanion(
+        name: Value(name),
+        dirPath: Value(dirPath),
+        parentShelfId: Value(parentId),
+        scanRecursive: Value(scanRecursive),
+        isRoot: Value(isRoot),
+        lastScannedAt: Value(DateTime.now()),
+        displayOrder: Value(displayOrder),
+      ),
+    );
+    final saved = await _db.shelvesDao.getShelfByPath(dirPath);
+    if (saved == null) {
+      throw StateError('Failed to save shelf for $dirPath');
+    }
+    return saved.id;
   }
 }
