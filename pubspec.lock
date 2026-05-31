@@ -233,14 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.32.1"
-  epub_view:
-    dependency: "direct main"
-    description:
-      name: epub_view
-      sha256: a1c68fb2feadf7f7764195e0f8d69f6e4f7d29e0638744ea9f981343eaea0c29
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
   epubx:
     dependency: "direct main"
     description:
@@ -326,14 +318,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
-  flutter_html:
-    dependency: transitive
-    description:
-      name: flutter_html
-      sha256: "38a2fd702ffdf3243fb7441ab58aa1bc7e6922d95a50db76534de8260638558d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -385,7 +369,7 @@ packages:
     source: hosted
     version: "1.0.3"
   html:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: html
       sha256: "6d1264f2dffa1b1101c25a91dff0dc2daee4c18e87cd8538729773c073dbf602"
@@ -480,14 +464,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
-  list_counter:
-    dependency: transitive
-    description:
-      name: list_counter
-      sha256: c447ae3dfcd1c55f0152867090e67e219d42fe6d4f2807db4bbe8b8d69912237
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.2"
   logging:
     dependency: transitive
     description:
@@ -760,14 +736,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
-  scrollable_positioned_list:
-    dependency: transitive
-    description:
-      name: scrollable_positioned_list
-      sha256: "1b54d5f1329a1e263269abc9e2543d90806131aa14fe7c6062a8054d57249287"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.8"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -949,14 +917,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  universal_file:
-    dependency: transitive
-    description:
-      name: universal_file
-      sha256: d1a957fccaad2a32023b62fe435b273ee47aaf2eb804709795e4bf4afff50960
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   universal_platform:
     dependency: transitive
     description:

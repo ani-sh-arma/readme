@@ -83,11 +83,13 @@ class BookRepository {
 
     final existing = await getBookByPath(file.path);
     final stat = await file.stat();
-    final currentCoverExists =
-        existing?.coverPath != null && File(existing!.coverPath!).existsSync();
+    final currentCoverExists = _media.isUsableCover(existing?.coverPath);
+    final shouldRefreshGeneratedEpubCover =
+        format == BookFormat.epub && existing?.coverSource == 'generated';
     if (existing != null &&
         existing.fileSize == stat.size &&
         currentCoverExists &&
+        !shouldRefreshGeneratedEpubCover &&
         existing.format == format.name) {
       return;
     }
