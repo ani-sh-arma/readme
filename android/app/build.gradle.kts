@@ -42,3 +42,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // junrar — CBR/RAR extraction
+    implementation("com.github.junrar:junrar:7.5.5")
+}
